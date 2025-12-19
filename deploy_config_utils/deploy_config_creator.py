@@ -338,7 +338,7 @@ def write_env_files(per_env: Dict[str, Dict[str, Any]], output_dir: str) -> None
         print(f"Wrote: {out_path}")
 
 def main():
-    input_file_path = ".\\Artifacts\\deploy_config_R4.txt"
+    input_file_path = ".\\Artifacts\\Sample.txt"
     output_file_path = ".\\Artifacts\\output_file.json"
     output_dir = ".\\Artifacts"
 
