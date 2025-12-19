@@ -1,0 +1,10 @@
+[
+  {
+    "node": "OSBVM03SV001ISP",
+    "hostname": "OSBVM03SV001ISP.sobeys.com",
+    "os_type":"windows",
+    "certificateLabel": "client-api",
+    "certificatePassphrase": "ITInteg1"
+  }
+
+]
