@@ -1,0 +1,10 @@
+[
+  {
+    "name": "F2F_RSCWST40_CASESHIPSQL_REPORT_UTLEST02",
+    "fileNameKeyvalues": "MATCH|route_*.*.csv",
+    "node": "TADCWHSE",
+    "hostname": "firetail.sobeys.com",
+    "os_type":"UNIX"
+  }
+
+]

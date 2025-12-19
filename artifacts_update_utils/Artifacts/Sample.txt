@@ -1,0 +1,175 @@
+0
+n/a
+
+c
+/com/awr/outbox
+/db2work/ops/outbox
+/db2work/ops/outbox/
+/db2work/cma/outbox
+/db2work1/mbw/outbox/
+/com/sas/non_standard/outbox
+D:\FIM_QUE\Export
+$XMDM_PATH$
+D:\PM4D\out\
+D:\PM4D\out
+J:\Storeman\Courrier\Sortie
+J:\Storeman\Courrier\Sortie\
+/var/wmb/Ols_Sync_Files/out
+/var/wmb/TMS/in/QUE
+/com/NATPGP01/in/FTPSEB
+/com/out/store
+/com/out/____.???.:.txt
+/com/out/hr
+"/com/qms/out/sd
+/com/out/sd"
+"/com/qms/out/fi/
+/com/out/fi/"
+"/com/qms/out/sobpos/
+/com/out/sobpos/"
+"/com/qms/out/mdextract
+/com/out/mdextract"
+"/com/qms/out/sd/
+/com/out/sd/"
+"/com/qms/dcr/out/
+/com/dcr/out/"
+"/com/qms/out/dw/
+/com/out/dw/"
+"/com/qms/out/
+/com/out/"
+/com/qms/out/sd/jtl
+"/com/qms/out
+/com/out"
+"/com/qms/out/replen
+/com/out/replen"
+"/com/qms/out/sobpos
+/com/out/sobpos"
+"/com/qms/staticfiles
+/com/staticfiles"
+"/com/qms/in/pr
+/com/in/pr"
+"/com/qms/out/store
+/com/out/store"
+"/com/qms/rbh/out
+/com/rbh/out"
+"/com/qms/out/mdextract/azure
+/com/out/mdextract/azure"
+"/com/qms/dcr/out
+/com/dcr/out"
+"/com/qms/out/oliverwyman
+/com/out/oliverwyman"
+"/com/qms/out/exe
+/com/out/exe"
+/com/qms/out/fi
+/com/qms/out/sd
+/com/out/pr
+"/com/qms/out/sobpos
+/com/out/sobpos/"
+"/com/qms/out/profitect
+/com/out/profitect"
+"/com/qms/out/dw
+/com/out/dw"
+/com/qms/staticfiles
+"/com/qms/out/mm
+/com/out/mm"
+"/com/qms/out/fi
+/com/out/fi"
+/com/qms/out/sap_fr
+/com/qms/out
+/com/qms/out/sobpos
+/com/STOREGW/outbound/fanned
+/com/STOREGW/outbound/direct
+C:\com\eai
+E:\Transfer\Quebec_Legacy\COMREGION\ToCeridianSEB
+\\Q-SVMOFTRSF\transfer\Reclamation\ZLS\
+E:\Kalibrate
+E:\Transfer\Quebec_Legacy\COMREGION\ToConnerStone
+"qa: \\q-svmodamua\PretDam\transfert
+prd: \\q-svmodam\PretDam\transfert\"
+"qa:\\q-svmodamua\PretDam\transfert
+prd:\\q-svmodam\PretDam\transfert\"
+E:\Transfer\Quebec_Legacy\COMREGION\Khalix\Fidelite\
+E:\SAPQMP\IN\
+E:\Transfer\CorpoBV\
+E:\transfers\QMP\
+E:\Transfer\Quebec_Legacy\ISP\To_ISP
+F:\SAPQMQ\IN
+E:\Transfer\Quebec_Legacy\SMS\To_SMS
+E:\Transfer\CorpoBV
+F:\AzureInbound\BOH\recv\QUE
+F:\AzureInbound\SAPFR\recv
+F:\AzureInbound\ItemInventory\recv\QUE
+/db2work/cdr01p/cdrbatch/dcr/output
+\\A-SVFDFIMQAP1-Q\FIM_QUE\Export
+/exe_t24/dat
+${wms-lbs-app_unc}\LHSND\DATA\08
+${wms-lbs-app_unc}\LHSND\DATA\09
+${wms-lbs-app_unc}\LHSND\DATA\02
+${wms-lbs-app_unc}\LHSND\DATA\03
+/exe_t21/dat
+/exe_t20/dat
+/exe_t15/dat
+/gentrans/qat/sapqms_in/
+/chroot/home/fcnq/in/Quebec
+/chroot/home/ultramar/in/quebec
+/var/wmb/TMS/out/QUE
+/var/wmb/EDI/Ultramar/OUT
+/var/wmb/SobeysWholesale/Orders/QUE
+/com/STOREGW/inbound/process
+qa: /exe_t24/dat/fm/, pr: /exe_d21/dat/fm/
+qa: /exe_t14/dat/fm/, pr: /exe_d48/dat/fm/
+qa: /exe_t21/dat/fm/, pr: /exe_d66/dat/fm/
+qa: /exe_t20/dat/fm/, pr: /exe_d86/dat/fm/
+"/com/qms/wmb/out/edi
+/com/wmb/out/edi"
+"/com/qms/wmb/out/pos/
+/com/wmb/out/pos/"
+"/com/qms/wmb/out/edi/
+/com/wmb/out/edi/"
+"/com/qms/wmb/out/exe/
+/com/wmb/out/exe/"
+F:\Inetpub\websites\OnlineWholesale\Orders/Quebec
+SourceQueue
+pr:/exe_d28/dat, qa:/exe_t18/dat
+pr:/exe_d28/dat/edr, qa:/exe_t18/dat/edr
+qa: /exe_t18/dat/fm/, pr: /exe_d28/dat/fm/
+/var/wmb/C3/out
+QA:/exe_t24/dat, PROD:/exe_d21/dat
+\\wms-app-w19\WMS-HIF
+qa: /exe_t21/dat, prd: /exe_d66/dat
+QA:/exe_t20/dat, PROD:/exe_d86/dat/
+/com/out/C3
+QA:/exe_t14/dat, PROD:/exe_d48/dat/
+QA:/exe_t15/dat, PROD:/exe_d95/dat/
+qa: /exe_t11/dat, pr: /exe_d08/dat
+qa: /exe_t19/dat, pr: /exe_d09/dat
+qa: /exe_t33/dat, pr: /exe_d12/dat
+qa: /exe_t08/dat, pr: /exe_d31/dat
+qa: /exe_t32/dat, pr: /exe_d37/dat
+qa: /exe_t35/dat, pr: /exe_d40/dat
+\\CY-R2TEST02\WMS-HIF\LHSND\DATA\30
+qa: /exe_t26/dat, pr: /exe_d52/dat
+qa: /exe_t27/dat, pr: /exe_d57/dat
+qa: /exe_t22/dat, pr: /exe_d65/dat
+"/com/wms/out/C3
+/com/out/C3"
+pr:/exe_d21/dat, qa:/exe_t24/dat
+pr:/exe_d21/dat/edr, qa:/exe_t24/dat/edr
+pr:/exe_d48/dat, qa:/exe_t14/dat
+pr:/exe_d48/dat/edr, qa:/exe_t14/dat/edr
+/exe_t14/dat
+pr: \\wms-app-w19\WMS-HIF\LHSND\DATA\31, qa:\\TB-R1ARCH02\WMS-HIF\LHSND\DATA\31
+"qa: \\TB-R1ARCH02\WMS-HIF\LHSND\DATA\12\
+prd: \\wms-app-w19\WMS-HIF\LHSND\DATA\12\"
+"qa: \\TB-R1ARCH02\WMS-HIF\LHSND\DATA\13\
+prd: \\wms-app-w19\WMS-HIF\LHSND\DATA\13\"
+"qa: \\TB-R1ARCH02\WMS-HIF\LHSND\DATA\32\
+prd: \\wms-app-w19\WMS-HIF\LHSND\DATA\32\"
+qa: \\TB-R1ARCH02\WMS-HIF\LHSND\DATA\05, pr: \\wms-app-w19\WMS-HIF\LHSND\DATA\05
+"qa: \\TB-R1ARCH02\WMS-HIF\LHSND\DATA\06\
+prd: \\wms-app-w19\WMS-HIF\LHSND\DATA\06\"
+pr:/exe_d66/dat, qa:/exe_t21/dat
+pr:/exe_d66/dat/edr, qa:/exe_t21/dat/edr
+pr:/exe_d86/dat, qa:/exe_t20/dat
+pr:/exe_d86/dat/edr, qa:/exe_t20/dat/edr
+pr:/exe_d95/dat, qa:/exe_t15/dat
+pr:/exe_d95/dat/edr, qa:/exe_t15/dat/edr
