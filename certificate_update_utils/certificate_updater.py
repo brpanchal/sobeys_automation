@@ -9,19 +9,22 @@ import argparse
 from dotenv import load_dotenv
 from collections import defaultdict
 from datetime import datetime
+from typing import Dict, Any, List, Iterable
 
 # Configure the logger
 logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    datefmt= "%H:%M:%S",
     filename="app.log",
-    filemode="a"
+    filemode="a",
+    encoding="utf-8"
 )
 
 # Add console handler
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+console_handler.setLevel(logging.INFO)
+console_formatter = logging.Formatter("%(asctime)s - %(message)s")
 console_handler.setFormatter(console_formatter)
 
 # Get the root logger and add the console handler
@@ -182,28 +185,79 @@ def send_request(method, endpoint, env, payload=None):
     logger.debug(f"{method} {endpoint} Finished!!")
     return status, res
 
-def get_certificate(env):
+def get_certificate(env, backup=False, node=None):
     logger.debug(f"Executing CD get_certificate")
-    return send_request("GET", os.getenv('CDWS_CERT'), env)
+    _, result = send_request("GET", os.getenv('CDWS_CERT'), env)
+    if backup:
+        os.makedirs(os.getenv("PARENT_DIR")+node, exist_ok=True)
+        with open(os.path.join(os.getenv("PARENT_DIR"), node, "cert.json"), "w") as json_file:
+            json.dump(result[0][0], json_file, indent=4)
+    return result
 
 def update_certificate(payload, env):
     return send_request("PUT", os.getenv("CDWS_CERT"), env, payload)
 
-def check_certificate_validity(valid_to):
-    formated_date = None
-    validity_list = [valid_to[0][0]['validTo'], valid_to[0][0]['parentCertificate']['validTo']]
-    for valid in validity_list:
-        tokens = valid.split()
-        # Remove the timezone token (2nd last) and keep: DOW Mon DD HH:MM:SS YEAR
-        cleaned = ' '.join(tokens[:4] + [tokens[-1]])
-        dt = datetime.strptime(cleaned, '%a %b %d %H:%M:%S %Y')
-        formated_date = dt.date().strftime('%Y-%m-%d')
-        # Compare to Jan 1, 2026
-        if dt.date() > datetime(2026, 1, 16).date():
+def print_cert_validity(result, host_dict):
+    root_cert = result[0][0]
+    rows = traverse_cert_tree(root_cert)
+    logger.info(format_tree_report(host_dict.get("node", "N/A"), rows))
+
+def check_certificate_validity(result, host_dict):
+    root_cert = result[0][0]
+    rows = traverse_cert_tree(root_cert)
+
+    today = datetime.today().date()
+    details = []
+    all_valid = True
+
+    for row in rows:
+        try:
+            tokens = row['validTo'].split()
+            cleaned = ' '.join(tokens[:4] + [tokens[-1]])
+            to_dt = datetime.strptime(cleaned, '%a %b %d %H:%M:%S %Y').date()
+        except Exception:
+            # Mark as expired/unknown if format fails
+            details.append({
+                "path": row.get("path") or row.get("label") or "N/A",
+                "label": row.get("label"),
+                "validTo": row.get("validTo"),
+                "validFrom": row.get("validFrom")
+            })
+            all_valid = False
             continue
+
+        # Days to expiry
+        days_left = (to_dt - today).days
+
+        # Severity rules:
+        #   CRITICAL: <= 7 days
+        #   WARNING : <= 30 days
+        #   OK      : > 30 days
+        #   EXPIRED : < 0 days
+        if days_left < 0:
+            severity = "EXPIRED"
+            all_valid = False
+        elif days_left <= 7:
+            severity = "CRITICAL"
+        elif days_left <= 30:
+            severity = "WARNING"
         else:
-            return False, formated_date
-    return True, formated_date
+            severity = "OK"
+
+        details.append({
+            "path": row.get("path") or row.get("label") or "N/A",
+            "label": row.get("label"),
+            "validTo": f"{to_dt.strftime('%Y-%m-%d')}",
+            "validFrom": row['validFrom']
+        })
+    logger.info(format_tree_report(host_dict.get("node", "N/A"), details))
+    # for d in details:
+    #     print(
+    #         f"{d['path']}: validTo={d['validTo']} | days={d['daysToExpiry']} | severity={d['severity']}")
+
+    if not all_valid:
+        print("One or more certificates are expired or invalid.")
+    return all_valid
 
 def input_parser():
     parser = argparse.ArgumentParser(
@@ -214,6 +268,13 @@ def input_parser():
     parser.add_argument(
         "--env", required=True,
         help="Choose target environment (e.g., dev, qa, prod)."
+    )
+
+    parser.add_argument(
+        "--execution-mode", required=True,
+        choices=["preview", "execute"],
+        default="preview",
+        help="Choose 'preview' to simulate changes or 'execute' to apply the changes.)"
     )
     args = parser.parse_args()
     return args
@@ -236,26 +297,127 @@ def get_payload(payload):
 
     return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
 
+
+
+CERT_KEYS = ("certificateLabel", "validFrom", "validTo")
+
+def iter_children(node: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    """
+    Return an iterable of children/subchildren for the given node.
+    Adjust keys here to match your actual schema.
+    """
+    # Common patterns: children list, subCertificates list, or nested parent/child dicts
+    # If your model uses different keys, add them here.
+    possible_child_keys = ["children", "subCertificates", "childCertificates"]
+    for key in possible_child_keys:
+        if key in node and isinstance(node[key], list):
+            yield from node[key]
+
+    # If there's a single nested certificate chain (e.g., parentCertificate is a dict)
+    if isinstance(node.get("parentCertificate"), dict):
+        yield node["parentCertificate"]
+
+def extract_cert_fields(node: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Safely extract core certificate fields with defaults.
+    """
+    return {
+        "label": node.get("certificateLabel", "N/A"),
+        "validFrom": node.get("validFrom", "N/A"),
+        "validTo": node.get("validTo", "N/A"),
+    }
+
+def traverse_cert_tree(root: Dict[str, Any], path: List[str] = None) -> List[Dict[str, Any]]:
+    """
+    Depth-first traversal collecting certificate info across all levels.
+    Each row includes the 'path' showing the lineage (Parent → Child → Subchild).
+    """
+    if path is None:
+        path = []
+
+    rows = []
+    current = extract_cert_fields(root)
+    current_path = path + [current["label"]]
+    def _format_date(sdate, only_date=False):
+        today = datetime.today().date()
+        tokens = sdate.split()
+        cleaned = ' '.join(tokens[:4] + [tokens[-1]])
+        dt = datetime.strptime(cleaned, '%a %b %d %H:%M:%S %Y').date()
+        if only_date:
+            return dt.strftime('%Y-%m-%d')
+        # Days to expiry
+        days_left = (dt - today).days
+        if days_left < 0:
+            severity = "EXPIRED"
+        elif days_left <= 7:
+            severity = "CRITICAL"
+        elif days_left <= 30:
+            severity = "WARNING"
+        else:
+            severity = "OK"
+        return f"{dt.strftime('%Y-%m-%d')} | Days left:{days_left} | severity:{severity}"
+
+    rows.append({
+        "path": " > ".join([p for p in current_path if p and p != "N/A"]),
+        "label": current["label"],
+        "validFrom": _format_date(current["validFrom"], True),
+        "validTo": _format_date(current["validTo"]),
+    })
+
+    for child in iter_children(root):
+        rows.extend(traverse_cert_tree(child, current_path))
+    return rows
+
+
+def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
+    lines = [
+        "",
+        "┌──────────────────────────────────────────────────────────────┐",
+        f"│   Certificate Hierarchy for node: {node_name:<24}│",
+        "└──────────────────────────────────────────────────────────────┘",
+    ]
+    for r in rows:
+        lines.append(
+            f"• {r['path'] or r['label']}: "
+            f"valid from {r['validFrom']} to {r['validTo']}"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main():
     args = input_parser()
     try:
+        logger.info("======================= Loading required configuration started ==========================")
         node_list_json = read_node_list_json()
-        for index, node_list in enumerate(node_list_json):
+        logger.info("======================= Loading required configuration completed ==========================")
+        for node_list in node_list_json:
             for node in node_list:
+                logger.info(f"======================= Update certificate process started for node {node['node']} with {args.execution_mode} mode ==========================")
                 payload, host_dict = get_payload(node)
                 ensure_signed_on(args.env, host_dict)
-                logger.debug(f"Updating certificate for node: {node}")
-                #update_certificate(payload, args.env)
-                _, result = get_certificate(args.env)
-                status, new_date = check_certificate_validity(result)
-                if status:
-                    logger.debug(f"The key certificate has been successfully updated for node: {node} with validity: {new_date}")
+                if args.execution_mode == 'preview':
+                    result = get_certificate(args.env)
+                    logger.info(f"======================= Found existing certificate details for node {host_dict['node']} =======================")
+                    print_cert_validity(result, host_dict)
                 else:
-                    logger.error(f"The key certificate has been failed for node: {node} with validity: {new_date}")
+                    logger.debug(f"Updating certificate for node: {host_dict['node']}")
+                    get_certificate(args.env, True, host_dict['node'])
+                    #update_certificate(payload, args.env)
+                    res = get_certificate(args.env)
+                    status = check_certificate_validity(res, host_dict)
+
+                    if status:
+                        logger.info(f"The key certificate has been successfully updated for node: {host_dict['node']}")
+                    else:
+                        logger.info(f"The key certificate has been failed for node: {host_dict['node']}")
                 sign_out(args.env)
+                logger.info(f"======================= Update certificate process ended for node {host_dict['node']} ==========================")
     except Exception as e:
-        sign_out(args.env)
-        logger.error(f"Unexpected exception found during execution: {str(e)}")
+        try:
+            sign_out(args.env)
+        except Exception as e1:
+            logger.error(f"Unexpected exception found during execution: {str(e1)}")
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
 
 
