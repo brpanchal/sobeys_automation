@@ -208,56 +208,17 @@ def check_certificate_validity(result, host_dict):
 
     today = datetime.today().date()
     details = []
-    all_valid = True
+    all_valid = []
 
     for row in rows:
-        try:
-            tokens = row['validTo'].split()
-            cleaned = ' '.join(tokens[:4] + [tokens[-1]])
-            to_dt = datetime.strptime(cleaned, '%a %b %d %H:%M:%S %Y').date()
-        except Exception:
-            # Mark as expired/unknown if format fails
-            details.append({
-                "path": row.get("path") or row.get("label") or "N/A",
-                "label": row.get("label"),
-                "validTo": row.get("validTo"),
-                "validFrom": row.get("validFrom")
-            })
-            all_valid = False
-            continue
-
-        # Days to expiry
-        days_left = (to_dt - today).days
-
-        # Severity rules:
-        #   CRITICAL: <= 7 days
-        #   WARNING : <= 30 days
-        #   OK      : > 30 days
-        #   EXPIRED : < 0 days
-        if days_left < 0:
-            severity = "EXPIRED"
-            all_valid = False
-        elif days_left <= 7:
-            severity = "CRITICAL"
-        elif days_left <= 30:
-            severity = "WARNING"
+        if 'severity:OK' in row.get("validTo"):
+            all_valid.append(True)
         else:
-            severity = "OK"
-
-        details.append({
-            "path": row.get("path") or row.get("label") or "N/A",
-            "label": row.get("label"),
-            "validTo": f"{to_dt.strftime('%Y-%m-%d')}",
-            "validFrom": row['validFrom']
-        })
-    logger.info(format_tree_report(host_dict.get("node", "N/A"), details))
-    # for d in details:
-    #     print(
-    #         f"{d['path']}: validTo={d['validTo']} | days={d['daysToExpiry']} | severity={d['severity']}")
-
-    if not all_valid:
-        print("One or more certificates are expired or invalid.")
-    return all_valid
+            all_valid.append(False)
+    logger.info(format_tree_report(host_dict.get("node", "N/A"), rows))
+    if not all(all_valid):
+        print("Still one or more certificates are expired or near to expire or invalid.")
+    return True
 
 def input_parser():
     parser = argparse.ArgumentParser(
@@ -403,9 +364,9 @@ def main():
                 else:
                     logger.debug(f"Updating certificate for node: {host_dict['node']}")
                     get_certificate(args.env, True, host_dict['node'])
-                    #update_certificate(payload, args.env)
+                    status, _ = update_certificate(payload, args.env)
                     res = get_certificate(args.env)
-                    status = check_certificate_validity(res, host_dict)
+                    check_certificate_validity(res, host_dict)
 
                     if status:
                         logger.info(f"The key certificate has been successfully updated for node: {host_dict['node']}")
