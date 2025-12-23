@@ -14,7 +14,7 @@ Create and configure the following files:
     eg..  {
             "node": "<node_name>",
             "hostname": "<node>.sobeys.com",
-            "os_type":"windows",
+            "os_type":"windows or unix or AIX",
             "certificateLabel": "client-api",
             "certificatePassphrase": ""
           }
