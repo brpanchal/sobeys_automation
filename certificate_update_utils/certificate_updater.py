@@ -349,17 +349,19 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
 def main():
     args = input_parser()
     try:
-        logger.info("======================= Loading required configuration started ==========================")
+        logger.info(f"========== Certificate update started: Env={args.env}, Execution mode={args.execution_mode} ==========")
+
+        logger.info("========== Loading required configuration started =============")
         node_list_json = read_node_list_json()
-        logger.info("======================= Loading required configuration completed ==========================")
+        logger.info("========== Loading required configuration completed =============")
         for node_list in node_list_json:
             for node in node_list:
-                logger.info(f"======================= Update certificate process started for node {node['node']} with {args.execution_mode} mode ==========================")
+                logger.info(f"========== Processing started for node {node['node']} =============")
                 payload, host_dict = get_payload(node)
                 ensure_signed_on(args.env, host_dict)
                 if args.execution_mode == 'preview':
                     result = get_certificate(args.env)
-                    logger.info(f"======================= Found existing certificate details for node {host_dict['node']} =======================")
+                    logger.info(f"========== Found existing certificate details for node {host_dict['node']} ==========")
                     print_cert_validity(result, host_dict)
                 else:
                     logger.debug(f"Updating certificate for node: {host_dict['node']}")
@@ -373,13 +375,16 @@ def main():
                     else:
                         logger.info(f"The key certificate has been failed for node: {host_dict['node']}")
                 sign_out(args.env)
-                logger.info(f"======================= Update certificate process ended for node {host_dict['node']} ==========================")
+                logger.info(f"========== Processing completed for node {host_dict['node']} =============")
     except Exception as e:
         try:
             sign_out(args.env)
         except Exception as e1:
             logger.error(f"Unexpected exception found during execution: {str(e1)}")
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
+    finally:
+        logger.info(f"========== Certificate update completed ==========")
+
 
 
 if __name__ == '__main__':
