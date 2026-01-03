@@ -11,6 +11,8 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, Any, List, Iterable
 
+## TODO: create rollback with pem file
+##TODO: create folder for app.log with timestamp
 # Configure the logger
 logging.basicConfig(
     level=logging.INFO,
@@ -43,27 +45,33 @@ token = None
 cookies = None
 csrf = None
 windows_cert = None
-linux_cert = None
+unix_cert = None
 aix_cert = None
 session = requests.Session()
 
 
 def read_certificate_file(file_name, json_type=False):
-    with open(os.getenv("PARENT_DIR")+os.getenv(file_name), 'r') as f:
-        return json.load(f) if json_type else f.read()
+    if file_name:
+        with open(os.getenv("PARENT_DIR")+os.getenv(file_name), 'r') as f:
+            return json.load(f) if json_type else f.read()
+    return None
 
 def read_node_list_json():
-    global windows_cert, linux_cert, aix_cert
+    global windows_cert, unix_cert, aix_cert
     try:
         windows_cert = read_certificate_file("WINDOWS_CERTIFICATE")
-        linux_cert = read_certificate_file("UNIX_CERTIFICATE")
+        unix_cert = read_certificate_file("UNIX_CERTIFICATE")
         aix_cert = read_certificate_file("AIX_CERTIFICATE")
         node_list = read_certificate_file("NODE_LIST_FILE", True)
         buckets = defaultdict(list)
         for node in node_list:
             os_type = node.get("os_type", "").lower()
-            if os_type in ("windows", "unix", "aix"):
-                buckets[os_type].append(node)
+            if "windows" in os_type:
+                buckets["windows"].append(node)
+            elif "aix" in os_type:
+                buckets["aix"].append(node)
+            else:
+                buckets["unix"].append(node)
     except Exception as e:
         raise Exception(f"Error reading certificate or nodes list file: {e}")
 
@@ -94,7 +102,7 @@ def sign_on(endpoint, env, host_dict):
                'Authorization': base64_encoded_credential,
                'X-XSRF-TOKEN': "Y2hlY2tpdA=="
                }
-
+    ##TODO: add hardcoded values like protocol, token in variable files
     payload = {'ipAddress': host_dict['hostname'],
                'port': port,
                'protocol': "TLS1.2",
@@ -190,6 +198,7 @@ def get_certificate(env, backup=False, node=None):
     _, result = send_request("GET", os.getenv('CDWS_CERT'), env)
     if backup:
         os.makedirs(os.getenv("PARENT_DIR")+node, exist_ok=True)
+        ## TODO: Create folder with timestamp in artifacts when reexecute
         with open(os.path.join(os.getenv("PARENT_DIR"), node, "cert.json"), "w") as json_file:
             json.dump(result[0][0], json_file, indent=4)
     return result
@@ -217,7 +226,7 @@ def check_certificate_validity(result, host_dict):
             all_valid.append(False)
     logger.info(format_tree_report(host_dict.get("node", "N/A"), rows))
     if not all(all_valid):
-        print("Still one or more certificates are expired or near to expire or invalid.")
+        logger.info("Still one or more certificates are expired or near to expire or invalid.")
     return True
 
 def input_parser():
@@ -241,20 +250,18 @@ def input_parser():
     return args
 
 def get_payload(payload):
-    global windows_cert, linux_cert, aix_cert
+    global windows_cert, unix_cert, aix_cert
     node = payload.pop("node", None)
     hostname = payload.pop("hostname", None)
     os_type = payload.pop("os_type", None)
     payload["importMode"]= "add_or_replace"
     payload["syncNodes"]= ""
-    if os_type.lower() == 'windows':
+    if  'windows' in os_type.lower():
         payload['certificateData'] =  windows_cert
-    elif os_type.lower() == 'linux':
-        payload['certificateData'] =  linux_cert
-    elif os_type.lower() == 'aix':
+    elif 'aix' in os_type.lower():
         payload['certificateData'] =  aix_cert
     else:
-        payload['certificateData'] = ""
+        payload['certificateData'] =  unix_cert
 
     return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
 
@@ -307,6 +314,7 @@ def traverse_cert_tree(root: Dict[str, Any], path: List[str] = None) -> List[Dic
         if only_date:
             return dt.strftime('%Y-%m-%d')
         # Days to expiry
+        ##TODO: Add severity in the log with details
         days_left = (dt - today).days
         if days_left < 0:
             severity = "EXPIRED"
@@ -345,6 +353,12 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
     lines.append("")
     return "\n".join(lines)
 
+def ensure_signout(env):
+    try:
+        sign_out(env)
+    except Exception as e1:
+        logger.error(f"Unexpected exception found during execution: {str(e1)}")
+
 
 def main():
     args = input_parser()
@@ -356,31 +370,31 @@ def main():
         logger.info("========== Loading required configuration completed =============")
         for node_list in node_list_json:
             for node in node_list:
-                logger.info(f"========== Processing started for node {node['node']} =============")
-                payload, host_dict = get_payload(node)
-                ensure_signed_on(args.env, host_dict)
-                if args.execution_mode == 'preview':
-                    result = get_certificate(args.env)
-                    logger.info(f"========== Found existing certificate details for node {host_dict['node']} ==========")
-                    print_cert_validity(result, host_dict)
-                else:
-                    logger.debug(f"Updating certificate for node: {host_dict['node']}")
-                    get_certificate(args.env, True, host_dict['node'])
-                    status, _ = update_certificate(payload, args.env)
-                    res = get_certificate(args.env)
-                    check_certificate_validity(res, host_dict)
-
-                    if status:
-                        logger.info(f"The key certificate has been successfully updated for node: {host_dict['node']}")
+                try:
+                    logger.info(f"========== Processing started for node {node['node']} =============")
+                    payload, host_dict = get_payload(node)
+                    ensure_signed_on(args.env, host_dict)
+                    if args.execution_mode == 'preview':
+                        result = get_certificate(args.env)
+                        logger.info(f"========== Found existing certificate details for node {host_dict['node']} ==========")
+                        print_cert_validity(result, host_dict)
                     else:
-                        logger.info(f"The key certificate has been failed for node: {host_dict['node']}")
-                sign_out(args.env)
-                logger.info(f"========== Processing completed for node {host_dict['node']} =============")
+                        logger.debug(f"Updating certificate for node: {host_dict['node']}")
+                        get_certificate(args.env, True, host_dict['node'])
+                        status, _ = update_certificate(payload, args.env)
+                        res = get_certificate(args.env)
+                        check_certificate_validity(res, host_dict)
+
+                        if status:
+                            logger.info(f"The key certificate has been successfully updated for node: {host_dict['node']}")
+                        else:
+                            logger.info(f"The key certificate has been failed for node: {host_dict['node']}")
+                    logger.info(f"========== Processing completed for node {host_dict['node']} =============")
+                except Exception as e:
+                    logger.error(f"========== Processing failed for certificate ==========")
+                finally:
+                    ensure_signout(args.env)
     except Exception as e:
-        try:
-            sign_out(args.env)
-        except Exception as e1:
-            logger.error(f"Unexpected exception found during execution: {str(e1)}")
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:
         logger.info(f"========== Certificate update completed ==========")
