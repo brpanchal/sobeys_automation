@@ -39,8 +39,7 @@ Create and configure the following files:
 
     C) The following parameter values are required and must be obtained from the Admin. Once received,
       update them in the .env file accordingly like below(eg..).
-        
-        PARENT_DIR=.\Artifacts\
+
         NODE_LIST_FILE="node_list.json"
         UNIX_CERTIFICATE="CERT-20251208-NEW.pem"
         AIX_CERTIFICATE="CERT-20251208-NEW.pem"

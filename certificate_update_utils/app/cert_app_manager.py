@@ -1,45 +1,20 @@
 import os
 import  json
-import logging
 import time
 import requests
 import urllib3
 import base64
-import argparse
 from dotenv import load_dotenv
-from collections import defaultdict
 from datetime import datetime
 from typing import Dict, Any, List, Iterable
+from .logger import logger
+from .constants import *
 
 ## TODO: create rollback with pem file
-##TODO: create folder for app.log with timestamp
-# Configure the logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(message)s",
-    datefmt= "%H:%M:%S",
-    filename="app.log",
-    filemode="a",
-    encoding="utf-8"
-)
-
-# Add console handler
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter("%(asctime)s - %(message)s")
-console_handler.setFormatter(console_formatter)
-
-# Get the root logger and add the console handler
-logger = logging.getLogger()
-logger.addHandler(console_handler)
-
-
 """ Description about variables
-    Create a logger instance
     Loads variables from .env into environment
     Initialize token, csrf, cookies, session if not exist
 """
-logger = logging.getLogger(__name__)
 load_dotenv()
 token = None
 cookies = None
@@ -48,43 +23,14 @@ windows_cert = None
 unix_cert = None
 aix_cert = None
 session = requests.Session()
-
-
-def read_certificate_file(file_name, json_type=False):
-    if file_name:
-        with open(os.getenv("PARENT_DIR")+os.getenv(file_name), 'r') as f:
-            return json.load(f) if json_type else f.read()
-    return None
-
-def read_node_list_json():
-    global windows_cert, unix_cert, aix_cert
-    try:
-        windows_cert = read_certificate_file("WINDOWS_CERTIFICATE")
-        unix_cert = read_certificate_file("UNIX_CERTIFICATE")
-        aix_cert = read_certificate_file("AIX_CERTIFICATE")
-        node_list = read_certificate_file("NODE_LIST_FILE", True)
-        buckets = defaultdict(list)
-        for node in node_list:
-            os_type = node.get("os_type", "").lower()
-            if "windows" in os_type:
-                buckets["windows"].append(node)
-            elif "aix" in os_type:
-                buckets["aix"].append(node)
-            else:
-                buckets["unix"].append(node)
-    except Exception as e:
-        raise Exception(f"Error reading certificate or nodes list file: {e}")
-
-    return [buckets["windows"], buckets["unix"], buckets["aix"]]
-
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 def sign_on(endpoint, env, host_dict):
     global token, cookies, csrf, session
     sign_on_status = False
-    json_res = {}
     base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
     url = f"{base_url}{endpoint}"
-    if "windows" in host_dict['os_type'].lower():
+    if SYSTEMS[0] in host_dict['os_type'].lower():
         credentials = f"{os.getenv(f"{env}_CD_WIN_USER")}:{os.getenv(f"{env}_CD_WIN_PASSWORD")}"
         encoded_bytes = base64.b64encode(credentials.encode("utf-8"))
         encoded_str = encoded_bytes.decode("utf-8")
@@ -97,15 +43,15 @@ def sign_on(endpoint, env, host_dict):
         base64_encoded_credential = f"Basic {encoded_str}"
         port = int(f"{os.getenv(f"{env}_CD_UNIX_PORT")}")
 
-    headers = {'Accept': 'application/json',
-               'Content-Type': 'application/json',
+    headers = {'Accept': os.getenv("CONTENT_TYPE"),
+               'Content-Type': os.getenv("CONTENT_TYPE"),
                'Authorization': base64_encoded_credential,
-               'X-XSRF-TOKEN': "Y2hlY2tpdA=="
+               'X-XSRF-TOKEN': os.getenv("XSRF_TOKEN")
                }
-    ##TODO: add hardcoded values like protocol, token in variable files
+
     payload = {'ipAddress': host_dict['hostname'],
                'port': port,
-               'protocol': "TLS1.2",
+               'protocol': os.getenv("PROTOCOL"),
                }
 
     try:
@@ -157,17 +103,16 @@ def sign_out(env):
 
 def get_headers():
     global token, cookies, csrf
+    content_type = os.getenv("CONTENT_TYPE")
     return {
-        'Accept': 'application/json',
-        'CONTENT-TYPE': 'application/json',
+        'Accept': content_type,
+        'CONTENT-TYPE': content_type,
         'Authorization': token,
         'Cookie': cookies,
         'X-XSRF-TOKEN': csrf
     }
 
 def send_request(method, endpoint, env, payload=None):
-    status = False
-    res = None
     base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
     url = f"{base_url}{endpoint}"
     headers = get_headers()
@@ -196,10 +141,12 @@ def send_request(method, endpoint, env, payload=None):
 def get_certificate(env, backup=False, node=None):
     logger.debug(f"Executing CD get_certificate")
     _, result = send_request("GET", os.getenv('CDWS_CERT'), env)
+
+    ## get backup of existing certificate before update if backup flag Trues
     if backup:
-        os.makedirs(os.getenv("PARENT_DIR")+node, exist_ok=True)
-        ## TODO: Create folder with timestamp in artifacts when reexecute
-        with open(os.path.join(os.getenv("PARENT_DIR"), node, "cert.json"), "w") as json_file:
+        node_backup = f"{NODE_CERT_BACKUP_PATH}{timestamp}"
+        os.makedirs(PARENT_DIR+node_backup, exist_ok=True)
+        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CERT.json"), "w") as json_file:
             json.dump(result[0][0], json_file, indent=4)
     return result
 
@@ -214,9 +161,6 @@ def print_cert_validity(result, host_dict):
 def check_certificate_validity(result, host_dict):
     root_cert = result[0][0]
     rows = traverse_cert_tree(root_cert)
-
-    today = datetime.today().date()
-    details = []
     all_valid = []
 
     for row in rows:
@@ -224,30 +168,11 @@ def check_certificate_validity(result, host_dict):
             all_valid.append(True)
         else:
             all_valid.append(False)
+
     logger.info(format_tree_report(host_dict.get("node", "N/A"), rows))
     if not all(all_valid):
         logger.info("Still one or more certificates are expired or near to expire or invalid.")
     return True
-
-def input_parser():
-    parser = argparse.ArgumentParser(
-        description="Update Certificate for CD on a given environment"
-    )
-
-    # Add arguments
-    parser.add_argument(
-        "--env", required=True,
-        help="Choose target environment (e.g., dev, qa, prod)."
-    )
-
-    parser.add_argument(
-        "--execution-mode", required=True,
-        choices=["preview", "execute"],
-        default="preview",
-        help="Choose 'preview' to simulate changes or 'execute' to apply the changes.)"
-    )
-    args = parser.parse_args()
-    return args
 
 def get_payload(payload):
     global windows_cert, unix_cert, aix_cert
@@ -256,18 +181,15 @@ def get_payload(payload):
     os_type = payload.pop("os_type", None)
     payload["importMode"]= "add_or_replace"
     payload["syncNodes"]= ""
-    if  'windows' in os_type.lower():
+    if  SYSTEMS[0] in os_type.lower():
         payload['certificateData'] =  windows_cert
-    elif 'aix' in os_type.lower():
+    elif SYSTEMS[1] in os_type.lower():
         payload['certificateData'] =  aix_cert
     else:
         payload['certificateData'] =  unix_cert
 
     return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
 
-
-
-CERT_KEYS = ("certificateLabel", "validFrom", "validTo")
 
 def iter_children(node: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
     """
@@ -276,8 +198,7 @@ def iter_children(node: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
     """
     # Common patterns: children list, subCertificates list, or nested parent/child dicts
     # If your model uses different keys, add them here.
-    possible_child_keys = ["children", "subCertificates", "childCertificates"]
-    for key in possible_child_keys:
+    for key in POSSIBLE_CHILD_KEYS:
         if key in node and isinstance(node[key], list):
             yield from node[key]
 
@@ -314,13 +235,12 @@ def traverse_cert_tree(root: Dict[str, Any], path: List[str] = None) -> List[Dic
         if only_date:
             return dt.strftime('%Y-%m-%d')
         # Days to expiry
-        ##TODO: Add severity in the log with details
         days_left = (dt - today).days
-        if days_left < 0:
+        if days_left < EXPIRED_SEV_DAYS:
             severity = "EXPIRED"
-        elif days_left <= 7:
+        elif days_left <= CRITICAL_SEV_DAYS:
             severity = "CRITICAL"
-        elif days_left <= 30:
+        elif days_left <= WARNING_SEV_DAYS:
             severity = "WARNING"
         else:
             severity = "OK"
@@ -353,21 +273,15 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
     lines.append("")
     return "\n".join(lines)
 
-def ensure_signout(env):
+def ensure_sign_out(env):
     try:
         sign_out(env)
     except Exception as e1:
-        logger.error(f"Unexpected exception found during execution: {str(e1)}")
+        logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
 
-def main():
-    args = input_parser()
+def run_cert_service(node_list_json, args):
     try:
-        logger.info(f"========== Certificate update started: Env={args.env}, Execution mode={args.execution_mode} ==========")
-
-        logger.info("========== Loading required configuration started =============")
-        node_list_json = read_node_list_json()
-        logger.info("========== Loading required configuration completed =============")
         for node_list in node_list_json:
             for node in node_list:
                 try:
@@ -391,15 +305,8 @@ def main():
                             logger.info(f"The key certificate has been failed for node: {host_dict['node']}")
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
                 except Exception as e:
-                    logger.error(f"========== Processing failed for certificate ==========")
+                    logger.error(f"========== Processing failed for certificate due to {e} ==========")
                 finally:
-                    ensure_signout(args.env)
+                    ensure_sign_out(args.env)
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
-    finally:
-        logger.info(f"========== Certificate update completed ==========")
-
-
-
-if __name__ == '__main__':
-    main()

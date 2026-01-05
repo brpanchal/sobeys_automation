@@ -5,6 +5,20 @@
     "os_type":"windows",
     "certificateLabel": "client-api",
     "certificatePassphrase": "ITInteg1"
+  },
+  {
+	"node": "SAPRMSS4",
+	"hostname": "c1-s4dsap-d.sobeys.com",
+    "os_type": "unix",
+    "certificateLabel": "nonprod.wildcard.sobeys.com",
+    "certificatePassphrase": "ITInteg1"
+  },
+  {
+    "node": "DMNAT01",
+    "hostname": "10.155.114.43",
+    "os_type":"windows",
+    "certificateLabel": "client-api",
+    "certificatePassphrase": "ITInteg1"
   }
 
 ]
