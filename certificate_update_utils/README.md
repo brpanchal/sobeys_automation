@@ -54,12 +54,12 @@ Create and configure the following files:
         DEV_CD_PROTOCOL=protocol
 
 5.  Run Utility through Command Line or using.
-   - Command Line:
+   - Command Line:ss
      -  Preview Mode:
-         ```bash
-         python .\certificate_updater.py --env "dev" --execution-mode "preview"
+        ```bash
+        python cert_app.py --env "dev" --execution-mode "preview"
      -  Execute Mode:    
         ```bash
-        python .\certificate_updater.py --env "dev" --execution-mode "execute"
+        python cert_app.py --env "dev" --execution-mode "execute"
 
 # Troubleshooting

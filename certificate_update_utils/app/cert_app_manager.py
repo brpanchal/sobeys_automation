@@ -154,12 +154,12 @@ def update_certificate(payload, env):
     return send_request("PUT", os.getenv("CDWS_CERT"), env, payload)
 
 def print_cert_validity(result, host_dict):
-    root_cert = result[0][0]
+    root_cert = result[0]
     rows = traverse_cert_tree(root_cert)
     logger.info(format_tree_report(host_dict.get("node", "N/A"), rows))
 
 def check_certificate_validity(result, host_dict):
-    root_cert = result[0][0]
+    root_cert = result[0]
     rows = traverse_cert_tree(root_cert)
     all_valid = []
 
@@ -216,17 +216,11 @@ def extract_cert_fields(node: Dict[str, Any]) -> Dict[str, Any]:
         "validTo": node.get("validTo", "N/A"),
     }
 
-def traverse_cert_tree(root: Dict[str, Any], path: List[str] = None) -> List[Dict[str, Any]]:
-    """
-    Depth-first traversal collecting certificate info across all levels.
-    Each row includes the 'path' showing the lineage (Parent → Child → Subchild).
-    """
-    if path is None:
-        path = []
-
+def traverse_single_root(root, path):
     rows = []
     current = extract_cert_fields(root)
     current_path = path + [current["label"]]
+
     def _format_date(sdate, only_date=False):
         today = datetime.today().date()
         tokens = sdate.split()
@@ -254,8 +248,22 @@ def traverse_cert_tree(root: Dict[str, Any], path: List[str] = None) -> List[Dic
     })
 
     for child in iter_children(root):
-        rows.extend(traverse_cert_tree(child, current_path))
+        rows.extend(traverse_single_root(child, current_path))
     return rows
+
+def traverse_cert_tree(root: Dict[str, Any], path: List[str] = None) -> List[Dict[str, Any]]:
+    """
+    Depth-first traversal collecting certificate info across all levels.
+    Each row includes the 'path' showing the lineage (Parent → Child → Subchild).
+    """
+    if path is None:
+        path = []
+
+    rows_1 = []
+    if isinstance(root, list):
+        for one_root in root:
+            rows_1.extend(traverse_single_root(one_root, path))
+    return rows_1
 
 
 def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
