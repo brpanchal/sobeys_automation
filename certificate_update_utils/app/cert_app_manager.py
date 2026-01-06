@@ -267,19 +267,104 @@ def traverse_cert_tree(root: Dict[str, Any], path: List[str] = None) -> List[Dic
 
 
 def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
+    """
+    Render a certificate hierarchy report in ASCII table format.
+
+    Columns:
+      - Path/Label
+      - Valid From
+      - Valid To
+      - Days Left
+      - Severity
+    """
+    # Prepare rows normalized to strings and handle missing keys gracefully
+    normalized = []
+    for r in rows:
+        path_or_label = str(r.get("path") or r.get("label") or "-")
+        valid_from = str(r.get("validFrom") or "-")
+        valid_to = str(r.get("validTo") or "-")
+        parts = valid_to.split('|')
+        valid_to = str(parts[0] or "-")
+        days_left = str(parts[1].split(":")[1] or "-")
+        severity = str(parts[2].split(":")[1] or "-")
+        normalized.append((path_or_label, valid_from, valid_to, days_left, severity))
+
+    # Headers
+    headers = ("Path/Label", "Valid From", "Valid To", "Days Left", "Severity")
+
+    # Compute column widths: max of header and content per column
+    col_widths = [
+        max(len(headers[0]), *(len(row[0]) for row in normalized)) if normalized else len(headers[0]),
+        max(len(headers[1]), *(len(row[1]) for row in normalized)) if normalized else len(headers[1]),
+        max(len(headers[2]), *(len(row[2]) for row in normalized)) if normalized else len(headers[2]),
+        max(len(headers[3]), *(len(row[3]) for row in normalized)) if normalized else len(headers[3]),
+        max(len(headers[4]), *(len(row[4]) for row in normalized)) if normalized else len(headers[4]),
+    ]
+
+    # Helper to build a row with padding
+    def build_row(cols, widths, sep="│"):
+        cells = [
+            f" {str(col).ljust(width)} " for col, width in zip(cols, widths)
+        ]
+        return sep + sep.join(cells) + sep
+
+    # Helper to build horizontal rules
+    def build_rule(widths, style="top"):
+        # style: "top", "mid", "bottom"
+        if style == "top":
+            left, mid, right, junction = "┌", "┬", "┐", "─"
+        elif style == "mid":
+            left, mid, right, junction = "├", "┼", "┤", "─"
+        else:
+            left, mid, right, junction = "└", "┴", "┘", "─"
+
+        segments = [junction * (w + 2) for w in widths]  # +2 for spaces added around cells
+        return left + mid.join(segments) + right
+
+    # Title banner (kept from your original style, width expanded to table width)
+    table_total_width = sum(w + 2 for w in col_widths) + (len(col_widths) + 1)  # cells + separators
+    title_line = f"│   Certificate Hierarchy for node: {node_name:<24}│"
+
+    # Adjust title box width to match table width aesthetically (minimum to fit)
+    # Ensure the decorative box matches or exceeds the table width
+    deco_inner_width = max(len(title_line) - 2, table_total_width - 2)
+    deco_top = "┌" + "─" * deco_inner_width + "┐"
+    deco_bottom = "└" + "─" * deco_inner_width + "┘"
+    # Re-center the title within the decorative box
+    title_text = f"   Certificate Hierarchy for node: {node_name}"
+    padding = deco_inner_width - len(title_text)
+    if padding >= 0:
+        left_pad = padding // 2
+        right_pad = padding - left_pad
+        title_line = "│" + (" " * left_pad) + title_text + (" " * right_pad) + "│"
+    else:
+        # Fallback if node_name is extremely long; truncate
+        trimmed = title_text[:deco_inner_width]
+        title_line = "│" + trimmed + "│"
+
     lines = [
         "",
-        "┌──────────────────────────────────────────────────────────────┐",
-        f"│   Certificate Hierarchy for node: {node_name:<24}│",
-        "└──────────────────────────────────────────────────────────────┘",
+        deco_top,
+        title_line,
+        deco_bottom,
+        build_rule(col_widths, style="top"),
+        build_row(headers, col_widths),
+        build_rule(col_widths, style="mid"),
     ]
-    for r in rows:
-        lines.append(
-            f"• {r['path'] or r['label']}: "
-            f"valid from {r['validFrom']} to {r['validTo']}"
-        )
+
+    # Data rows
+    if normalized:
+        for row in normalized:
+            lines.append(build_row(row, col_widths))
+    else:
+        # No data case
+        lines.append(build_row(("— No certificates —", "", ""), [col_widths[0], col_widths[1], col_widths[2]]))
+
+    lines.append(build_rule(col_widths, style="bottom"))
     lines.append("")
+
     return "\n".join(lines)
+
 
 def ensure_sign_out(env):
     try:
