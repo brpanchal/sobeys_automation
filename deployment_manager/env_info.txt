@@ -1,0 +1,112 @@
+#---------------------------
+# git connector configuration
+# --------------------------
+
+GIT_ORGANIZATION=
+GIT_PROJECT=
+GIT_PERSONAL_ACCESS_TOKEN=
+GIT_DOMAIN=
+GIT_DEPLOY_CONFIG_REPO=
+GIT_ARTIFACTS_REPO=
+
+# --------------------------
+# CD URL
+# --------------------------
+DEV_CDWS_URL=
+QA_CDWS_URL=
+PROD_CDWS_URL=
+
+# --------------------------
+# CD CREDENTIAL
+# --------------------------
+DEV_CD_UNIX_USER=
+DEV_CD_UNIX_PASSWORD=
+DEV_CD_UNIX_PORT=
+DEV_CD_WIN_USER=
+DEV_CD_WIN_PASSWORD=
+DEV_CD_WIN_PORT=
+
+QA_CD_UNIX_USER=
+QA_CD_UNIX_PASSWORD=
+QA_CD_UNIX_PORT=
+QA_CD_WIN_USER=
+QA_CD_WIN_PASSWORD=
+QA_CD_WIN_PORT=
+
+PROD_CD_UNIX_USER=
+PROD_CD_UNIX_PASSWORD=
+PROD_CD_UNIX_PORT=
+PROD_CD_WIN_USER=
+PROD_CD_WIN_PASSWORD=
+PROD_CD_WIN_PORT=
+
+# --------------------------
+# CD API PORT
+# --------------------------
+
+CDWS_PORT=
+
+
+# -------------------------------------------------
+# API ENDPOINTS-----------DO NOT CHANGE THESE VALUES
+# -------------------------------------------------
+CDWS_SIGNON=/cdwebconsole/svc/signon
+CDWS_LOGOUT=/cdwebconsole/svc/signout
+CDWS_CDP=/cdwebconsole/svc/processlibrary
+CDWS_CDP_LIST=/cdwebconsole/svc/processlibrary/list
+CDWS_WATCHDIR=/cdwebconsole/svc/watchdirectory
+CDWS_FA_RULES=/cdwebconsole/svc/fileagentrule
+CDWS_FA_APPLY=/cdwebconsole/svc/faconfiguration/applychanges
+
+
+#----------------------------
+# B2BI URLS and CREDENTIALS
+#----------------------------
+QA_B2B_URL=https:
+QA_B2B_USER=
+QA_B2B_PASSWORD=
+
+DEV_B2B_URL=
+DEV_B2B_USER=
+DEV_B2B_PASSWORD=
+
+# --------------------------------------------------------
+# B2Bi Codelists -----------DO NOT CHANGE THESE VALUES
+# --------------------------------------------------------
+B2BI_CODELIST_SBYS_FW_IDENTIFY_CONSUMER=SBYS_FW_IDENTIFY_CONSUMER
+B2BI_CODELIST_SBYS_FW_EMAIL=SBYS_FW_EMAIL
+B2BI_CODELIST_SBYS_FW_DELIVERY_WSMQ=SBYS_FW_DELIVERY_WSMQ
+B2BI_CODELIST_SBYS_FW_DELIVERY_SFTP=SBYS_FW_DELIVERY_SFTP
+B2BI_CODELIST_SBYS_FW_DELIVERY_GEN=SBYS_FW_DELIVERY_GEN
+B2BI_CODELIST_SBYS_FW_DELIVERY_FILESYSTEM=SBYS_FW_DELIVERY_FILESYSTEM
+B2BI_CODELIST_SBYS_FW_DELIVERY_DB=SBYS_FW_DELIVERY_DB
+B2BI_CODELIST_SBYS_FW_DELIVERY_CD=SBYS_FW_DELIVERY_CD
+B2BI_CODELIST_SBYS_FW_DELIVERY_AZUREFILESTORAGE=SBYS_FW_DELIVERY_AZUREFILESTORAGE
+B2BI_CODELIST_SBYS_FW_COLLECT_SFTP=SBYS_FW_COLLECT_SFTP
+
+# ----------------------------------------------------
+# B2Bi API URLs-----------DO NOT CHANGE THESE VALUES
+# ----------------------------------------------------
+B2BI_CODELIST=/B2BAPIs/svc/codelists/
+
+
+# -------------------------------------------
+#               Interface Details
+# -------------------------------------------
+# ---------------------------
+# MQ
+# ---------------------------
+WSMQ_DEV_HOSTNAME=
+WSMQ_DEV_PORT=
+WSMQ_DEV_CHANNEL=
+WSMQ_DEV_QMANAGER=
+
+WSMQ_QA_HOSTNAME=
+WSMQ_QA_PORT=
+WSMQ_QA_CHANNEL=
+WSMQ_QA_QMANAGER=
+
+WSMQ_PROD_HOSTNAME=
+WSMQ_PROD_PORT=
+WSMQ_PROD_CHANNEL=
+WSMQ_PROD_QMANAGER=

@@ -1,0 +1,5 @@
+[
+  { "id": "env001", "name": "Dev", "enabled": true, "branch_name": "develop" },
+  { "id": "env002", "name": "QA", "enabled": true, "branch_name": "release" },
+  { "id": "env003", "name": "Prod", "enabled": true, "branch_name": "master" }
+]

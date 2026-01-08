@@ -1,0 +1,15 @@
+app:
+  debug: true
+  log_file: app.log
+  env_config_path: "app/env_config.json"
+  deployment_history_data_dir: "deployment_history_data_dir"
+  default_cd_rule: Disabled
+
+ignored_deploy_config_vars:
+  - MMMM
+  - YYYY
+  - MM
+  - DD
+  - YY
+  - HH
+  - SS
