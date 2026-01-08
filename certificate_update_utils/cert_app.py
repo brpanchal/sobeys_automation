@@ -25,6 +25,7 @@ def read_certificates():
         windows_cert = read_file(CERTIFICATES[0], path)
         unix_cert = read_file(CERTIFICATES[1], path)
         aix_cert = read_file(CERTIFICATES[2], path)
+        return {"windows_cert":windows_cert, "unix_cert":unix_cert, "aix_cert":aix_cert}
     except Exception as e:
         raise Exception(f"Error reading certificate file: {e}")
 
@@ -71,10 +72,10 @@ def main():
         logger.info(f"========== Certificate update started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
-        read_certificates()
+        certificates = read_certificates()
         node_list_json = read_node_list_json()
         logger.info("========== Loading required configuration completed =============")
-        run_cert_service(node_list_json, args)
+        run_cert_service(node_list_json, certificates, args)
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:

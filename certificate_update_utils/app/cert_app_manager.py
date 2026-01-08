@@ -19,9 +19,6 @@ load_dotenv()
 token = None
 cookies = None
 csrf = None
-windows_cert = None
-unix_cert = None
-aix_cert = None
 session = requests.Session()
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -174,19 +171,18 @@ def check_certificate_validity(result, host_dict):
         logger.info("Still one or more certificates are expired or near to expire or invalid.")
     return True
 
-def get_payload(payload):
-    global windows_cert, unix_cert, aix_cert
+def get_payload(payload, certificates):
     node = payload.pop("node", None)
     hostname = payload.pop("hostname", None)
     os_type = payload.pop("os_type", None)
     payload["importMode"]= "add_or_replace"
     payload["syncNodes"]= ""
     if  SYSTEMS[0] in os_type.lower():
-        payload['certificateData'] =  windows_cert
+        payload['certificateData'] =  certificates['windows_cert']
     elif SYSTEMS[1] in os_type.lower():
-        payload['certificateData'] =  aix_cert
+        payload['certificateData'] =  certificates['aix_cert']
     else:
-        payload['certificateData'] =  unix_cert
+        payload['certificateData'] =  certificates['unix_cert']
 
     return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
 
@@ -214,6 +210,7 @@ def extract_cert_fields(node: Dict[str, Any]) -> Dict[str, Any]:
         "label": node.get("certificateLabel", "N/A"),
         "validFrom": node.get("validFrom", "N/A"),
         "validTo": node.get("validTo", "N/A"),
+        "commonName": node.get("commonName", "N/A"),
     }
 
 def traverse_single_root(root, path):
@@ -245,6 +242,7 @@ def traverse_single_root(root, path):
         "label": current["label"],
         "validFrom": _format_date(current["validFrom"], True),
         "validTo": _format_date(current["validTo"]),
+        "commonName": current["commonName"],
     })
 
     for child in iter_children(root):
@@ -276,6 +274,7 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
       - Valid To
       - Days Left
       - Severity
+      - comonName
     """
     # Prepare rows normalized to strings and handle missing keys gracefully
     normalized = []
@@ -287,10 +286,11 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
         valid_to = str(parts[0] or "-")
         days_left = str(parts[1].split(":")[1] or "-")
         severity = str(parts[2].split(":")[1] or "-")
-        normalized.append((path_or_label, valid_from, valid_to, days_left, severity))
+        common_name = str(node_name + ":" + r.get("commonName"))
+        normalized.append((path_or_label, valid_from, valid_to, days_left, severity, common_name))
 
     # Headers
-    headers = ("Path/Label", "Valid From", "Valid To", "Days Left", "Severity")
+    headers = ("Path/Label", "Valid From", "Valid To", "Days Left", "Severity", "Common Name")
 
     # Compute column widths: max of header and content per column
     col_widths = [
@@ -299,6 +299,7 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
         max(len(headers[2]), *(len(row[2]) for row in normalized)) if normalized else len(headers[2]),
         max(len(headers[3]), *(len(row[3]) for row in normalized)) if normalized else len(headers[3]),
         max(len(headers[4]), *(len(row[4]) for row in normalized)) if normalized else len(headers[4]),
+        max(len(headers[5]), *(len(row[5]) for row in normalized)) if normalized else len(headers[5]),
     ]
 
     # Helper to build a row with padding
@@ -373,13 +374,13 @@ def ensure_sign_out(env):
         logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
 
-def run_cert_service(node_list_json, args):
+def run_cert_service(node_list_json, certificates, args):
     try:
         for node_list in node_list_json:
             for node in node_list:
                 try:
                     logger.info(f"========== Processing started for node {node['node']} =============")
-                    payload, host_dict = get_payload(node)
+                    payload, host_dict = get_payload(node, certificates)
                     ensure_signed_on(args.env, host_dict)
                     if args.execution_mode == 'preview':
                         result = get_certificate(args.env)
