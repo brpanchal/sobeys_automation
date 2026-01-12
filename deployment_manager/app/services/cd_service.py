@@ -221,14 +221,20 @@ class CDServices:
 
     def is_rule_exist(self, latest_rule):
         def _display_rule_list(rule_1, rule_2):
-            logger.info("Provided rule: %s", rule_1)
-            logger.info("Existing server rule: %s", rule_2)
-        status, get_rules_res = self.__get_rules()
+            logger.info("Rule to be deployed: %s", rule_1)
+            logger.info("Existing matched rule from server: %s", rule_2)
 
+        # Raise exception when rule name key not found in provided rule.
         latest_rule = {
             k: MATCH_MAP.get(v.lower(), v) if isinstance(v, str) else v
             for k, v in latest_rule.items()
         }
+        latest_name = latest_rule.get("name")
+        if latest_name is None:
+            raise Exception("Rule name not provided or missing in the supplied CD rule list.")
+
+        # Retrieving rules list from CD server with all fields
+        status, get_rules_res = self.__get_rules()
 
         if not status:
             msg = "Skipping creation of File Agent rule: CD get_rules failed."
@@ -236,13 +242,10 @@ class CDServices:
             raise RuntimeError(msg)
 
         rules = (get_rules_res or {}).get("rules", [])
-        latest_name = latest_rule.get("name")
         if not rules:
-            raise Exception("Failed to retrieve rules from server (empty CD rule list).")
-        elif latest_name is None:
-            raise Exception("Rule name not provided or missing in the supplied CD rule list.")
+            return False, 'INSERT'
 
-        # Find first match by key
+        # Find first match by provided rule name in retrieved rule list
         matched_rule = next((r for r in rules if r.get("name") == latest_name), None)
         if matched_rule is None:
             logger.info(
@@ -252,16 +255,31 @@ class CDServices:
             return False, 'INSERT'
 
         # Compare only relevant keys (RULE_KEYS should exclude ignored ones)
-        if any(matched_rule.get(k) != latest_rule.get(k) for k in RULE_KEYS):
+        differences = {}
+        # Compare relevant fields only
+        for key in RULE_KEYS:
+            if matched_rule.get(key) != latest_rule.get(key):
+                differences[key] = {
+                    "server": matched_rule.get(key),
+                    "provided": latest_rule.get(key)
+                }
+
+        # If any field differs, log the mismatch and the details
+        if differences:
             logger.info(
-                f"Mismatch detected between provided rule and server rule for name '{latest_name}'. "
-                f"Rule needs to be updated."
+                    f"Mismatch detected between provided rule and server rule for name '{latest_name}'. "
+                    f"Rule needs to be updated."
             )
-            _display_rule_list(latest_rule, matched_rule)
+
+            # Log each differing field
+            for field, diff in differences.items():
+                logger.info(
+                    f"Field '{field}' differs: Provided={diff['provided']} | CD Server={diff['server']}"
+                )
             return False, 'UPDATE'
 
         logger.info(
-            f"Rule '{latest_name}' already exists on the server with identical configuration. Skipping update."
+            f"Rule '{latest_name}' already exists on the server with identical configuration. Skipping Insert/update."
         )
         _display_rule_list(latest_rule, matched_rule)
         return True, 'SKIP'
@@ -354,9 +372,11 @@ class CDServices:
                 elif entry_type=='UPDATE':
                     self.__update_rule(data)
                     self.__apply_changes()
+                    logger.info(f"Rule updated successfully")
                 else:
                     self.__create_rule(data)
                     self.__apply_changes()
+                    logger.info(f"Rule inserted successfully")
         except Exception as e:
             raise RuntimeError(f"Failed to deploy Rule, RuntimeError: {e}")
         logger.info(f"Rule completed")
