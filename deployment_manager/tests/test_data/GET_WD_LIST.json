@@ -1,0 +1,85 @@
+{
+  "totalRecords": 16,
+  "watchDirList": [
+    {
+      "watchedDir": "/chroot/home/rbh/in",
+      "comments": "/chroot/home/rbh/in",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/com/awr/drifqueout",
+      "comments": "/com/awr/drifqueout",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/com/awr/drifwstout",
+      "comments": "/com/awr/drifwstout",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/com/awr/outbox",
+      "comments": "/com/awr/outbox",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_d66/dat",
+      "comments": "/exe_d66/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_d86/dat",
+      "comments": "/exe_d86/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t14/dat",
+      "comments": "/exe_t14/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t15/dat",
+      "comments": "/exe_t15/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t18/dat",
+      "comments": "/exe_t18/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t18/dat/edr",
+      "comments": "/exe_t18/dat/edr",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t20/dat",
+      "comments": "/exe_t20/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t20/dat/edr",
+      "comments": "/exe_t20/dat/edr",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t21/dat",
+      "comments": "/exe_t21/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t24/dat",
+      "comments": "/exe_t24/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/exe_t28/dat",
+      "comments": "/exe_t28/dat",
+      "monitorSubDirectories": "false"
+    },
+    {
+      "watchedDir": "/tmp/target_files",
+      "comments": "/tmp/target_files/",
+      "monitorSubDirectories": "false"
+    }
+  ]
+}

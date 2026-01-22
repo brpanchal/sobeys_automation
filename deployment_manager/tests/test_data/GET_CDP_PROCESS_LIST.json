@@ -1,0 +1,71 @@
+[
+  {
+    "totalRecords": 16,
+    "PROCESSFILES": [
+      {
+        "fileName": "AWRNSV01_SFG.cdp",
+        "modificationDate": "Fri Oct 24 06:53:04 ADT 2025"
+      },
+      {
+        "fileName": "FTPRBH_SFG.cdp",
+        "modificationDate": "Tue Jan 20 08:30:30 AST 2026"
+      },
+      {
+        "fileName": "RSCSVR21_SFG.cdp",
+        "modificationDate": "Wed Dec 10 02:48:37 AST 2025"
+      },
+      {
+        "fileName": "RSCSVR28_SFG.cdp",
+        "modificationDate": "Mon Dec 08 04:36:32 AST 2025"
+      },
+      {
+        "fileName": "RSCSVR48_SFG.cdp",
+        "modificationDate": "Tue Dec 09 10:43:12 AST 2025"
+      },
+      {
+        "fileName": "RSCSVR66_SFG.cdp",
+        "modificationDate": "Thu Dec 11 09:11:55 AST 2025"
+      },
+      {
+        "fileName": "RSCSVR86_SFG.cdp",
+        "modificationDate": "Mon Dec 08 04:37:49 AST 2025"
+      },
+      {
+        "fileName": "RSCSVR95_SFG.cdp",
+        "modificationDate": "Fri Dec 12 08:37:52 AST 2025"
+      },
+      {
+        "fileName": "SAPRMSS4_SAPRMS04_SFG.cdp",
+        "modificationDate": "Mon Jan 12 09:08:16 AST 2026"
+      },
+      {
+        "fileName": "STDCWHSE_RSCSVR21.cdp",
+        "modificationDate": "Mon Dec 08 04:50:07 AST 2025"
+      },
+      {
+        "fileName": "STDCWHSE_RSCSVR28_SFG.cdp",
+        "modificationDate": "Mon Jan 12 09:06:53 AST 2026"
+      },
+      {
+        "fileName": "STDCWHSE_RSCSVR48_SFG.cdp",
+        "modificationDate": "Tue Dec 09 10:42:27 AST 2025"
+      },
+      {
+        "fileName": "STDCWHSE_RSCSVR66_SFG.cdp",
+        "modificationDate": "Fri Jan 09 09:46:14 AST 2026"
+      },
+      {
+        "fileName": "STDCWHSE_RSCSVR86_SFG.cdp",
+        "modificationDate": "Mon Jan 19 02:39:24 AST 2026"
+      },
+      {
+        "fileName": "STDCWHSE_RSCSVR95_SFG.cdp",
+        "modificationDate": "Thu Dec 11 09:13:18 AST 2025"
+      },
+      {
+        "fileName": "STDCWHSE_SFG.cdp",
+        "modificationDate": "Fri Jan 09 08:01:26 AST 2026"
+      }
+    ]
+  }
+]

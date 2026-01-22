@@ -1,0 +1,5 @@
+{
+  "processFileName": "RSCSVR66_SFG.cdp",
+  "processFileData": "RSCSVR66_SFG PROCESS\n\n        SNODE=SFGDEV\n\n        &INFILE=\"%FA_FILE_FOUND\"\n\n        &FILENAME=\"%FA_NOT_PATH\"\n\t\t&TRXMODE=binary\nCDCP COPY\n\n    FROM (\n\n        FILE=\"&INFILE\"\n\t\tsysopts=\":datatype=&TRXMODE:\"\n        PNODE\n\n)\n\nckpt = 2M\n\n    TO (\n\n        FILE = \"/mailbox/STDCWHSE/RSCSVR66/&FILENAME\"\n\t\tsysopts=\":datatype=&TRXMODE:\"\n        SNODE\n\n        DISP=RPL\n\n                )\nIF (CDCP EQ 0) THEN\nACK RUN TASK PNODE (PGM=UNIX)\nSYSOPTS=\"rm &INFILE\"\nEIF\n\n\nPEND",
+  "overrideProcessFile": ""
+}

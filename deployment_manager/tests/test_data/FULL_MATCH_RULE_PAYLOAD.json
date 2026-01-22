@@ -1,0 +1,25 @@
+{
+    "rules": [
+        {
+            "comments": "${{db2work_ops_outbox}}/ops_dsciuord_55_*",
+            "fileSizeEnabled": false,
+            "filePathKeyvalues": "MATCH|${{db2work_ops_outbox}}",
+            "procName": "EDWCDR01_SFG.cdp",
+            "ruleStatus": "Enabled",
+            "priority": 20,
+            "filePathEnabled": true,
+            "altFileName": "",
+            "procArgs": "&INFILE=%FA_FILE_FOUND. &FILENAME=%FA_NOT_PATH.",
+            "notifyUid": "",
+            "name": "F2F_EDWCDR01_DSCIUORD_RSCQUE55",
+            "fileSizeKeyvalues": "",
+            "lastModified": "Sun Mar 23 07:00:09 ADT 2025",
+            "procPriority": "1",
+            "fileNameKeyvalues": "MATCH|${{db2work_ops_outbox}}/ops_dsciuord_55_*",
+            "procClass": "1",
+            "fileNameEnabled": true
+        }
+    ]
+}
+
+
