@@ -1,0 +1,13 @@
+[
+  {
+	"node": "SAPRMSS4",
+	"hostname": "c1-s4dsap-d.sobeys.com",
+    "os_type": "unix"
+  },
+  {
+    "node": "DMNAT01",
+    "hostname": "10.155.114.43",
+    "os_type":"windows"
+  }
+
+]
