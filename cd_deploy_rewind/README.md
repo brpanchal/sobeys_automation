@@ -1,5 +1,5 @@
 # Introduction 
-Certificate updater utils is to update the certificate for particular node to a given environment.
+CD rollback and backup artifacts for particular node to a given environment.
 
 # Project Setup and Usage Guide
 **Prerequisites**
@@ -14,9 +14,7 @@ Create and configure the following files:
     eg..  {
             "node": "<node_name>",
             "hostname": "<node>.sobeys.com",
-            "os_type":"windows or unix or AIX",
-            "certificateLabel": "client-api",
-            "certificatePassphrase": ""
+            "os_type":"windows or unix or AIX"
           }
 
 **Installation Steps:**
@@ -27,7 +25,7 @@ Create and configure the following files:
 2. Navigate to the Project Directory
     Open your command prompt or terminal and change to the project directory:
     ```bash
-    cd certificate_update_utils
+    cd cd_deploy_rewind
 
 3. Install the required packages and modules
     ```bash
@@ -35,15 +33,12 @@ Create and configure the following files:
 
 4. Setup Environment
 
-    A) Manual Step: Create a .env file within the `/certificate_update_utils/` folder. Copy the contents from env_info.txt into it.
+    A) Manual Step: Create a .env file within the `/cd_deploy_rewind/` folder. Copy the contents from env_info.txt into it.
 
     C) The following parameter values are required and must be obtained from the Admin. Once received,
       update them in the .env file accordingly like below(eg..).
 
         NODE_LIST_FILE="node_list.json"
-        UNIX_CERTIFICATE="CERT-20251208-NEW.pem"
-        AIX_CERTIFICATE="CERT-20251208-NEW.pem"
-        WINDOWS_CERTIFICATE="CERT-20251208-NEW.pem"
 
         # Below parameters are across the environment, set for all the environment like DEV, QA, PROD, SIT etc.
         DEV_CDWS_URL="https://dev-cd.example.com"
@@ -52,14 +47,20 @@ Create and configure the following files:
         DEV_CD_WIN_USER="dev_cd_win_user"
         DEV_CD_WIN_PASSWORD="dev_cd_win_pass"
         DEV_CD_PROTOCOL=protocol
+        CDWS_CDP_PROCESS_LIST=/cdwebconsole/svc/processlibrary/list
+        CDWS_CDP_PROCESS=/cdwebconsole/svc/processlibrary
+        CDWS_RULES_WATCHDIR=/cdwebconsole/svc/faconfiguration/export
+        CDWS_FILE_AGENT_RULE=/cdwebconsole/svc/fileagentrule
+        CDWS_WATCH_DIR=/cdwebconsole/svc/watchdirectory
+        CDWS_FA_APPLY=/cdwebconsole/svc/faconfiguration/applychanges
 
 5.  Run Utility through Command Line or using.
    - Command Line:ss
      -  Preview Mode:
         ```bash
-        python cert_app.py --env "dev" --execution-mode "preview"
+        python run_app.py --env "dev" --execution-mode "preview"
      -  Execute Mode:    
         ```bash
-        python cert_app.py --env "dev" --execution-mode "execute"
+        python run_app.py --env "dev" --execution-mode "execute"
 
 # Troubleshooting
