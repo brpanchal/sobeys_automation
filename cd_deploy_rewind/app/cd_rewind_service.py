@@ -135,6 +135,7 @@ def get_cd_artifacts(env, backup=False, node=None):
     logger.debug(f"Executing CD artifacts")
     _, result_1 = send_request("GET", os.getenv('CDWS_RULES_WATCHDIR'), env)
     _, result_2 = send_request("GET", os.getenv('CDWS_CDP_PROCESS_LIST'), env)
+    data = None
 
     ## get backup of existing CD artifacts before update if backup flag Trues
     if backup:
@@ -153,10 +154,27 @@ def get_cd_artifacts(env, backup=False, node=None):
         with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CD_CDP_PROCESS_DATA.json"), "w") as json_file:
             json.dump(data, json_file, indent=4)
 
-    return result_1, result_2
+    return result_1, result_2, data
 
-def update_cd_artifacts(payload, env):
-    return send_request("PUT", os.getenv("CDWS_CERT"), env, payload)
+def update_cd_artifacts(payload, env, result_3):
+    status=False
+    # if 'cdp_tobe_update' in payload:
+    #     for item in payload['cdp_tobe_update']:
+    #         payload_param = {'processFileName': item}
+    #         send_request("PUT", os.getenv("CDWS_CDP_PROCESS"), env, payload_param)
+    #     status = True
+    # if 'wd_tobe_update' in payload:
+    #     for item in payload['wd_tobe_update']:
+    #         payload_param_1 = {'watchedDir': item}
+    #         send_request("PUT", os.getenv("CDWS_WATCH_DIR"), env, payload_param_1)
+    #     status = True
+    # if 'rules_list' in payload:
+    #     for item in payload['rules_list']:
+    #         payload_param_2 = {'name': item}
+    #         send_request("PUT", os.getenv("CDWS_FILE_AGENT_RULE"), env, payload_param_2)
+    #     status = True
+
+    return status
 
 def display_cd_artifacts(result, result_1, host_dict):
     rows = []
@@ -320,13 +338,13 @@ def run_cd_rewind_service(node_list_json, args):
                     payload, host_dict = get_payload(node)
                     ensure_signed_on(args.env, host_dict)
                     if args.execution_mode == 'preview':
-                        result_1, result_2 = get_cd_artifacts(args.env)
+                        result_1, result_2, _ = get_cd_artifacts(args.env)
                         logger.info(f"========== Found existing CD artifacts details for node {host_dict['node']} ==========")
                         display_cd_artifacts(result_1, result_2, host_dict)
                     else:
                         logger.debug(f"Updating CD artifacts for node: {host_dict['node']}")
-                        result_1, result_2 = get_cd_artifacts(args.env, True, host_dict['node'])
-                        #status, _ = update_cd_artifacts(payload, args.env)
+                        get_cd_artifacts(args.env, True, host_dict['node'])
+                        #status, _ = update_cd_artifacts(payload, args.env, result_3)
 
                         # if status:
                         #     logger.info(f"The key CD artifacts has been successfully updated for node: {host_dict['node']}")
