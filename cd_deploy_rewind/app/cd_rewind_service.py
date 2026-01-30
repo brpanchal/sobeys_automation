@@ -6,7 +6,7 @@ import urllib3
 import base64
 from dotenv import load_dotenv
 from datetime import datetime
-from typing import Dict, Any, List, Iterable
+from typing import Dict, Any, List
 from .logger import logger
 from .constants import *
 from .formatted_report import render_table
@@ -142,14 +142,19 @@ def get_cd_artifacts(env, backup=False, node=None):
         logger.info(f"========== Started backup of CD artifacts for node {node} ==========")
         node_backup = f"{CD_BACKUP_PATH}{timestamp}"
         os.makedirs(PARENT_DIR+node_backup, exist_ok=True)
-        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CD_RULES_AND_WATCHDIR.json"), "w") as json_file:
+        #Store Rule and watchdir
+        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_{CD_RULE_N_WATCHDIR_FILE}"), "w") as json_file:
             json.dump(result_1, json_file, indent=4)
-        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CD_CDP_PROCESS_LIST.json"), "w") as json_file:
+
+        #Store CDP Process list meta data
+        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_{CD_PROCESS_LIST_FILE}"), "w") as json_file:
             json.dump(result_2, json_file, indent=4)
+
+        #Store CDP process data
         cdp_dir = f"{node_backup}/{node}_{CDP_BACKUP_PATH}"
         os.makedirs(PARENT_DIR + cdp_dir, exist_ok=True)
         for item in result_2[0]['PROCESSFILES']:
-            process_url = f'{os.getenv('CDWS_CDP_PROCESS')}?processFileName={item['fileName']}'
+            process_url = f'{os.getenv('CDWS_CDP_PROCESS')}?{PROCESS_FILE_NAME}={item['fileName']}'
             _, result_3 = send_request("GET", process_url, env)
             with open(os.path.join(PARENT_DIR, cdp_dir, f"{item['fileName']}"), "w",  encoding="utf-8", newline="\n") as f:
                 f.write(result_3[0]['processFile'])
@@ -171,30 +176,23 @@ def get_payload(payload):
 
     return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
 
-def extract_cert_fields(node: Dict[str, Any], root_type=None, key:str=None) -> Dict[str, Any]:
+def extract_cd_fields(node: Dict[str, Any], root_type=None, key:str=None) -> Dict[str, Any]:
     """
     Safely extract core certificate fields with defaults.
     """
-    if root_type == 'watchDirList':
+    if root_type == ROOT_TYPE[0]:
+        wd_dict = { col:node.get(col, "N/A") for col in WATCHDIR_COL }
+        wd_dict.update({"label": key})
+        return wd_dict
+
+    elif root_type == ROOT_TYPE[1]:
+        rule_dict = {col: node.get(col, "N/A") for col in RULE_LIST_COL}
+        rule_dict.update({"label": key})
+        return rule_dict
+
+    elif root_type == ROOT_TYPE[2]:
         return {
-            "label": key,
-            "watchedDir": node.get("watchedDir", "N/A"),
-            "comments": node.get("comments", "N/A"),
-            "monitorSubDirectories": node.get("monitorSubDirectories", "N/A"),
-        }
-    elif root_type == 'ruleList':
-        #['name', 'ruleStatus', 'comments', 'procArgs', "procName"]
-        return {
-            "label": key,
-            "name": node.get("name", "N/A"),
-            "comments": node.get("comments", "N/A"),
-            "ruleStatus": node.get("ruleStatus", "N/A"),
-            "procArgs": node.get("procArgs", "N/A"),
-            "procName": node.get("procName", "N/A"),
-        }
-    elif root_type == 'PROCESSFILES':
-        return {
-            "fileName": node.get("fileName", "N/A")
+            PROCESS_LIST_COL: node.get(PROCESS_LIST_COL, "N/A")
         }
 
     return {}
@@ -202,29 +200,24 @@ def extract_cert_fields(node: Dict[str, Any], root_type=None, key:str=None) -> D
 def traverse_cert_tree(root, host_dict = None):
     """
     Depth-first traversal collecting certificate info across all levels.
-    Each row includes the 'path' showinsg the lineage (Parent → Child → Subchild).
+    Each row includes the 'path' showing the lineage (Parent → Child → Subchild).
     """
     rows = []
-    if root.get('PROCESSFILES', None):
-        root_type = 'PROCESSFILES'
-        root = root.get('PROCESSFILES')
-    elif root.get('ruleList', None):
-        root_type = 'ruleList'
-        root = root.get('ruleList')
-    elif root.get('watchDirList', None):
-        root_type = 'watchDirList'
-        root = root.get('watchDirList')
-    else:
-        root_type = None
+    root_type = None
+    root_data=[]
+    for rtype in ROOT_TYPE:
+        if root.get(rtype, None):
+            root_type = rtype
+            root_data = root.get(rtype)
 
     if root_type:
-        if isinstance(root, dict):
-            for key, rdict in root.items():
-                rows.append(extract_cert_fields(rdict, root_type, key))
+        if isinstance(root_data, dict):
+            for key, rdict in root_data.items():
+                rows.append(extract_cd_fields(rdict, root_type, key))
             logger.info("\n"+format_tree_report(host_dict.get("node", "N/A"), rows, root_type))
-        elif isinstance(root, list):
-            for row in root:
-                rows.append(extract_cert_fields(row, root_type))
+        elif isinstance(root_data, list):
+            for row in root_data:
+                rows.append(extract_cd_fields(row, root_type))
             logger.info("\n"+format_tree_report(host_dict.get("node", "N/A"), rows, root_type))
     return rows
 
@@ -248,28 +241,28 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]], root_type):
 
     title = f"{root_type} Artifacts for node: {node_name}"
 
-    if root_type == 'PROCESSFILES':
+    if root_type == ROOT_TYPE[2]:
         for r in rows:
-            normalized.append([str(r.get('fileName') or "-")])
+            normalized.append([str(r.get(PROCESS_LIST_COL) or "-")])
         # Headers
-        headers = ["fileName"]
+        headers = [PROCESS_LIST_COL]
         table = render_table(
             headers=headers,
             rows=normalized,
             title=title,
-            style="unicode",  # switch to "ascii" if borders look garbled
+            style="unicode",
             padding=1,
-            max_widths=80  # or [80] — tweak per your log/terminal width
+            max_widths=80
         )
 
-    elif root_type == 'ruleList':
+    elif root_type == ROOT_TYPE[1]:
         for r in rows:
             data = []
-            for val in ['name', 'ruleStatus', 'comments', 'procArgs', "procName"]:
+            for val in RULE_LIST_COL:
                 data.append(str(r.get(val)) if r.get(val) == False else str(r.get(val) or "-"))
             normalized.append(data)
         # Headers
-        headers = ['name', 'ruleStatus', 'comments', 'procArgs', "procName"]
+        headers = RULE_LIST_COL
 
         table = render_table(
             headers=headers,
@@ -280,14 +273,14 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]], root_type):
             max_widths=[34, 12, 62, 42, 22]  # tweak as needed
         )
 
-    elif root_type == 'watchDirList':
+    elif root_type == ROOT_TYPE[0]:
         for r in rows:
             data = []
-            for val in ['label', 'watchedDir', 'comments', 'monitorSubDirectories']:
+            for val in ['label']+WATCHDIR_COL:
                 data.append(fmt(r.get(val)))
             normalized.append(data)
         # Headers
-        headers = ("Path/Label", "WatchedDir", "Comments", "MonitorSubDirectories")
+        headers = ["Path/Label"]+WATCHDIR_COL
 
         # Use unicode; if your environment garbles borders, you can switch to style="ascii".
         table = render_table(
