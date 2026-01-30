@@ -140,44 +140,23 @@ def get_cd_artifacts(env, backup=False, node=None):
     ## get backup of existing CD artifacts before update if backup flag Trues
     if backup:
         logger.info(f"========== Started backup of CD artifacts for node {node} ==========")
-        data = []
-        for item in result_2[0]['PROCESSFILES']:
-            process_url = f'{os.getenv('CDWS_CDP_PROCESS')}?processFileName={item['fileName']}'
-            _, result_3 = send_request("GET", process_url, env)
-            data.append({item['fileName']:result_3})
         node_backup = f"{CD_BACKUP_PATH}{timestamp}"
         os.makedirs(PARENT_DIR+node_backup, exist_ok=True)
         with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CD_RULES_AND_WATCHDIR.json"), "w") as json_file:
             json.dump(result_1, json_file, indent=4)
         with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CD_CDP_PROCESS_LIST.json"), "w") as json_file:
             json.dump(result_2, json_file, indent=4)
-        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CD_CDP_PROCESS_DATA.json"), "w") as json_file:
-            json.dump(data, json_file, indent=4)
+        cdp_dir = f"{node_backup}/{node}_{CDP_BACKUP_PATH}"
+        os.makedirs(PARENT_DIR + cdp_dir, exist_ok=True)
+        for item in result_2[0]['PROCESSFILES']:
+            process_url = f'{os.getenv('CDWS_CDP_PROCESS')}?processFileName={item['fileName']}'
+            _, result_3 = send_request("GET", process_url, env)
+            with open(os.path.join(PARENT_DIR, cdp_dir, f"{item['fileName']}"), "w",  encoding="utf-8", newline="\n") as f:
+                f.write(result_3[0]['processFile'])
 
     return result_1, result_2, data
 
-def update_cd_artifacts(payload, env, result_3):
-    status=False
-    # if 'cdp_tobe_update' in payload:
-    #     for item in payload['cdp_tobe_update']:
-    #         payload_param = {'processFileName': item}
-    #         send_request("PUT", os.getenv("CDWS_CDP_PROCESS"), env, payload_param)
-    #     status = True
-    # if 'wd_tobe_update' in payload:
-    #     for item in payload['wd_tobe_update']:
-    #         payload_param_1 = {'watchedDir': item}
-    #         send_request("PUT", os.getenv("CDWS_WATCH_DIR"), env, payload_param_1)
-    #     status = True
-    # if 'rules_list' in payload:
-    #     for item in payload['rules_list']:
-    #         payload_param_2 = {'name': item}
-    #         send_request("PUT", os.getenv("CDWS_FILE_AGENT_RULE"), env, payload_param_2)
-    #     status = True
-
-    return status
-
 def display_cd_artifacts(result, result_1, host_dict):
-    rows = []
     wd_root = result['watchDirs']
     rl_root = result['rules']
     cdp_root = result_1[0]
@@ -344,12 +323,6 @@ def run_cd_rewind_service(node_list_json, args):
                     else:
                         logger.debug(f"Updating CD artifacts for node: {host_dict['node']}")
                         get_cd_artifacts(args.env, True, host_dict['node'])
-                        #status, _ = update_cd_artifacts(payload, args.env, result_3)
-
-                        # if status:
-                        #     logger.info(f"The key CD artifacts has been successfully updated for node: {host_dict['node']}")
-                        # else:
-                        #     logger.info(f"The key CD artifacts has been failed for node: {host_dict['node']}")
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
                 except Exception as e:
                     logger.error(f"========== Processing failed for CD artifacts due to {e} ==========")

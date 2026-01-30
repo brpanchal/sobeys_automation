@@ -3,6 +3,7 @@
 LOG_FILE_PATH = "./logs"
 PARENT_DIR="./Artifacts/"
 CD_BACKUP_PATH = "CD_ARTIFACTS_BACKUP/"
+CDP_BACKUP_PATH = "CDP"
 NODE_LIST_FILE = "NODE_LIST_FILE"
 SYSTEMS = ["windows", "aix", "unix"]
 CERT_KEYS = ("certificateLabel", "validFrom", "validTo")
