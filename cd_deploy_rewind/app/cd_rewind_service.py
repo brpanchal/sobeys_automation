@@ -5,7 +5,6 @@ import requests
 import urllib3
 import base64
 from dotenv import load_dotenv
-from datetime import datetime
 from typing import Dict, Any, List
 from .logger import logger
 from .constants import *
@@ -16,7 +15,6 @@ token = None
 cookies = None
 csrf = None
 session = requests.Session()
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 def sign_on(endpoint, env, host_dict):
     global token, cookies, csrf, session
@@ -135,31 +133,32 @@ def get_cd_artifacts(env, backup=False, node=None):
     logger.debug(f"Executing CD artifacts")
     _, result_1 = send_request("GET", os.getenv('CDWS_RULES_WATCHDIR'), env)
     _, result_2 = send_request("GET", os.getenv('CDWS_CDP_PROCESS_LIST'), env)
-    data = None
 
     ## get backup of existing CD artifacts before update if backup flag Trues
     if backup:
         logger.info(f"========== Started backup of CD artifacts for node {node} ==========")
-        node_backup = f"{CD_BACKUP_PATH}{timestamp}"
-        os.makedirs(PARENT_DIR+node_backup, exist_ok=True)
+        node_backup = f"{PARENT_DIR}/{CD_BACKUP_PATH}/{node}"
+        os.makedirs(node_backup, exist_ok=True)
         #Store Rule and watchdir
-        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_{CD_RULE_N_WATCHDIR_FILE}"), "w") as json_file:
+        with open(os.path.join(node_backup, f"{node}_{CD_RULE_N_WATCHDIR_FILE}"), "w") as json_file:
             json.dump(result_1, json_file, indent=4)
 
         #Store CDP Process list meta data
-        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_{CD_PROCESS_LIST_FILE}"), "w") as json_file:
+        with open(os.path.join(node_backup, f"{node}_{CD_PROCESS_LIST_FILE}"), "w") as json_file:
             json.dump(result_2, json_file, indent=4)
 
         #Store CDP process data
         cdp_dir = f"{node_backup}/{node}_{CDP_BACKUP_PATH}"
-        os.makedirs(PARENT_DIR + cdp_dir, exist_ok=True)
+        os.makedirs(cdp_dir, exist_ok=True)
         for item in result_2[0]['PROCESSFILES']:
             process_url = f'{os.getenv('CDWS_CDP_PROCESS')}?{PROCESS_FILE_NAME}={item['fileName']}'
             _, result_3 = send_request("GET", process_url, env)
-            with open(os.path.join(PARENT_DIR, cdp_dir, f"{item['fileName']}"), "w",  encoding="utf-8", newline="\n") as f:
+            with open(os.path.join(cdp_dir, f"{item['fileName']}"), "w",  encoding="utf-8", newline="\n") as f:
                 f.write(result_3[0]['processFile'])
 
-    return result_1, result_2, data
+        logger.info(f"========== Completed backup of CD artifacts for node {node} ==========")
+
+    return result_1, result_2
 
 def display_cd_artifacts(result, result_1, host_dict):
     wd_root = result['watchDirs']
@@ -310,12 +309,13 @@ def run_cd_rewind_service(node_list_json, args):
                     payload, host_dict = get_payload(node)
                     ensure_signed_on(args.env, host_dict)
                     if args.execution_mode == 'preview':
-                        result_1, result_2, _ = get_cd_artifacts(args.env)
+                        result_1, result_2 = get_cd_artifacts(args.env)
                         logger.info(f"========== Found existing CD artifacts details for node {host_dict['node']} ==========")
                         display_cd_artifacts(result_1, result_2, host_dict)
                     else:
                         logger.debug(f"Updating CD artifacts for node: {host_dict['node']}")
-                        get_cd_artifacts(args.env, True, host_dict['node'])
+                        result_1, result_2 = get_cd_artifacts(args.env, True, host_dict['node'])
+                        display_cd_artifacts(result_1, result_2, host_dict)
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
                 except Exception as e:
                     logger.error(f"========== Processing failed for CD artifacts due to {e} ==========")

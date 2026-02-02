@@ -1,13 +1,12 @@
 import logging
 import os
 from .constants import *
-from datetime import datetime
 
 # Ensure the logs directory exists
-os.makedirs(LOG_FILE_PATH, exist_ok=True)
+logdir = f"{PARENT_DIR}/{LOG_FILE_PATH}"
+os.makedirs(logdir, exist_ok=True)
 
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_file = f"{LOG_FILE_PATH}/app_{timestamp}.log"
+log_file = f"{logdir}/{LOG_FILE_PATH}.log"
 
 # Configure the logger
 logging.basicConfig(
