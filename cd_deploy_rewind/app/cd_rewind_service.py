@@ -299,13 +299,53 @@ def ensure_sign_out(env):
     except Exception as e1:
         logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
+def count_dicts(data):
+    if isinstance(data, dict):
+        return 1
+    if isinstance(data, list):
+        return sum(count_dicts(item) for item in data)
+    return 0
+
+def formatted_timedata(start_time, end_time):
+    formatted_start_time = time.strftime("%H:%M:%S", time.localtime(start_time))
+    formatted_end_time = time.strftime("%H:%M:%S", time.localtime(end_time))
+    return formatted_start_time, formatted_end_time
+
+def display_summary(summary_data, total_time, env, node_count, overall_time):
+    success_count = failed_count = 0
+    table = render_table(
+        headers=SUMMARY_COL,
+        rows=summary_data,
+        title=SUMMARY_TITLE+f":- Date:{datetime.now().strftime("%d-%m-%Y")}, Environment:{env}, Total Nodes:{node_count}",
+        style="unicode",
+        padding=1,
+        max_widths=[28, 40, 48, 80, 22, 48]
+    )
+    for data in summary_data:
+        if data[2]=='Success':
+            success_count += 1
+        elif data[2]=='Failed':
+            failed_count += 1
+
+    logger.info("\n" + table)
+    logger.info(f"Success: {success_count}    Failed: {failed_count}")
+    logger.info(overall_time)
+    logger.info(f"Total process duration: {total_time:.2f} seconds")
+    logger.info("=============================================================================")
 
 def run_cd_rewind_service(node_list_json, args):
     try:
+        dict_count = count_dicts(node_list_json)
+        counter = total_time = 0
+        overall_start_time = time.time()
+        summary_data = []
         for node_list in node_list_json:
             for node in node_list:
+                counter += 1
+                node_data=[]
+                start_time = time.time()
                 try:
-                    logger.info(f"========== Processing started for node {node['node']} =============")
+                    logger.info(f"========== Processing started for node [{counter}/{dict_count}]: {node['node']} =============")
                     payload, host_dict = get_payload(node)
                     ensure_signed_on(args.env, host_dict)
                     if args.execution_mode == 'preview':
@@ -314,12 +354,25 @@ def run_cd_rewind_service(node_list_json, args):
                         display_cd_artifacts(result_1, result_2, host_dict)
                     else:
                         logger.debug(f"Updating CD artifacts for node: {host_dict['node']}")
-                        result_1, result_2 = get_cd_artifacts(args.env, True, host_dict['node'])
-                        display_cd_artifacts(result_1, result_2, host_dict)
+                        get_cd_artifacts(args.env, True, host_dict['node'])
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
+                    node_data.extend([counter, host_dict['node'], "Success", 'Node process succeeded.'])
                 except Exception as e:
                     logger.error(f"========== Processing failed for CD artifacts due to {e} ==========")
+                    node_data.extend([counter, host_dict.get('node') or node.get('node'), 'Failed', f'Node process failed due to {e}'])
                 finally:
                     ensure_sign_out(args.env)
+
+                end_time = time.time()
+                total_elapsed_time = end_time - start_time
+                total_time += total_elapsed_time
+                stime, etime = formatted_timedata(start_time, end_time)
+                node_data.extend([f"{total_elapsed_time:.2f}s", f"{stime} - {etime}"])
+                summary_data.append(node_data)
+        overall_end_time = time.time()
+        ostime, oetime = formatted_timedata(overall_start_time, overall_end_time)
+        overall_time = f"Start Time: {ostime}   End Time:{oetime}"
+        display_summary(summary_data, total_time, args.env, dict_count, overall_time)
+
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")

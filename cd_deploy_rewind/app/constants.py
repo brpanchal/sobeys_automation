@@ -16,3 +16,5 @@ ROOT_TYPE = ["watchDirList", "ruleList", "PROCESSFILES"]
 WATCHDIR_COL = ["watchedDir", "comments", "monitorSubDirectories"]
 RULE_LIST_COL = ["name", "comments", "ruleStatus", "procArgs", "procName"]
 PROCESS_LIST_COL = "fileName"
+SUMMARY_COL = ["Sr.No.", "Node", "Status", "Message", "Duration", "Start Time - End Time (HH:MM:SS)"]
+SUMMARY_TITLE = "Backup Summary Details"
