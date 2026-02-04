@@ -331,7 +331,6 @@ def display_summary(summary_data, total_time, env, node_count, overall_time):
     logger.info(f"Success: {success_count}    Failed: {failed_count}")
     logger.info(overall_time)
     logger.info(f"Total process duration: {total_time:.2f} seconds")
-    logger.info("=============================================================================")
 
 def run_cd_rewind_service(node_list_json, args):
     try:

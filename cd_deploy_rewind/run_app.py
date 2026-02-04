@@ -44,7 +44,7 @@ def input_parser():
     )
 
     parser.add_argument(
-        "--execution-mode", required=True,
+        "--execution-mode", required=False,
         choices=["preview", "execute"],
         default="preview",
         help="Choose 'preview' to simulate changes or 'execute' to apply the changes.)"
@@ -55,6 +55,7 @@ def input_parser():
 def main():
     args = input_parser()
     try:
+        logger.info("=============================================================================")
         logger.info(f"========== CD rewind process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
@@ -64,7 +65,8 @@ def main():
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:
-        logger.info(f"========== CD rewind processs completed ==========")
+        logger.info(f"========== CD rewind process completed ==========")
+        logger.info("=============================================================================")
 
 if __name__ == '__main__':
     main()
