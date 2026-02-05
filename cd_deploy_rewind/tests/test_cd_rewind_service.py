@@ -128,7 +128,7 @@ class TestCDRewind(unittest.TestCase):
         with patch("requests.Session.request") as mq:
             mq.side_effect = partial(mock_request, process_list=process_list, wd_rule_data=wd_rule_data, process_data=process_data)
             with self.assertLogs(level='INFO') as cm:
-                get_cd_artifacts(self.fake_args.env, backup=True, node="ABC")
+                get_cd_artifacts(self.fake_args.env, backup=True, node="Sample.cdp")
 
             self.assertTrue(
                 any('Started backup of CD artifacts for node ABC' in line for line in cm.output),
