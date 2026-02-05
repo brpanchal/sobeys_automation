@@ -169,11 +169,14 @@ def display_cd_artifacts(result, result_1, host_dict):
     traverse_cert_tree(cdp_root, host_dict)
 
 def get_payload(payload):
-    node = payload.pop("node", None)
-    hostname = payload.pop("hostname", None)
-    os_type = payload.pop("os_type", None)
+    try:
+        node = payload.pop("node", None)
+        hostname = payload.pop("hostname", None)
+        os_type = payload.pop("os_type", None)
 
-    return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
+        return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
+    except Exception as e:
+        raise Exception(f"Unexpected exception during payload : {str(e)}")
 
 def extract_cd_fields(node: Dict[str, Any], root_type=None, key:str=None) -> Dict[str, Any]:
     """
@@ -334,40 +337,42 @@ def display_summary(summary_data, total_time, env, node_count, overall_time):
 
 def run_cd_rewind_service(node_list_json, args):
     try:
+        host_dict={}
         dict_count = count_dicts(node_list_json)
         counter = total_time = 0
         overall_start_time = time.time()
         summary_data = []
         for node_list in node_list_json:
             for node in node_list:
-                counter += 1
-                node_data=[]
-                start_time = time.time()
-                try:
-                    logger.info(f"========== Processing started for node [{counter}/{dict_count}]: {node['node']} =============")
-                    payload, host_dict = get_payload(node)
-                    ensure_signed_on(args.env, host_dict)
-                    if args.execution_mode == 'preview':
-                        result_1, result_2 = get_cd_artifacts(args.env)
-                        logger.info(f"========== Found existing CD artifacts details for node {host_dict['node']} ==========")
-                        display_cd_artifacts(result_1, result_2, host_dict)
-                    else:
-                        logger.debug(f"Updating CD artifacts for node: {host_dict['node']}")
-                        get_cd_artifacts(args.env, True, host_dict['node'])
-                    logger.info(f"========== Processing completed for node {host_dict['node']} =============")
-                    node_data.extend([counter, host_dict['node'], "Success", 'Node process succeeded.'])
-                except Exception as e:
-                    logger.error(f"========== Processing failed for CD artifacts due to {e} ==========")
-                    node_data.extend([counter, host_dict.get('node') or node.get('node'), 'Failed', f'Node process failed due to {e}'])
-                finally:
-                    ensure_sign_out(args.env)
+                if isinstance(node, dict) and node.get('node'):
+                    counter += 1
+                    node_data=[]
+                    start_time = time.time()
+                    try:
+                        logger.info(f"========== Processing started for node [{counter}/{dict_count}]: {node['node']} =============")
+                        payload, host_dict = get_payload(node)
+                        ensure_signed_on(args.env, host_dict)
+                        if args.execution_mode == 'preview':
+                            result_1, result_2 = get_cd_artifacts(args.env)
+                            logger.info(f"========== Found existing CD artifacts details for node {host_dict['node']} ==========")
+                            display_cd_artifacts(result_1, result_2, host_dict)
+                        else:
+                            logger.debug(f"Updating CD artifacts for node: {host_dict['node']}")
+                            get_cd_artifacts(args.env, True, host_dict['node'])
+                        logger.info(f"========== Processing completed for node {host_dict['node']} =============")
+                        node_data.extend([counter, host_dict['node'], "Success", 'Node process succeeded.'])
+                    except Exception as e:
+                        logger.error(f"========== Processing failed for CD artifacts due to {e} ==========")
+                        node_data.extend([counter, host_dict.get('node') or node.get('node'), 'Failed', f'Node process failed due to {e}'])
+                    finally:
+                        ensure_sign_out(args.env)
 
-                end_time = time.time()
-                total_elapsed_time = end_time - start_time
-                total_time += total_elapsed_time
-                stime, etime = formatted_timedata(start_time, end_time)
-                node_data.extend([f"{total_elapsed_time:.2f}s", f"{stime} - {etime}"])
-                summary_data.append(node_data)
+                    end_time = time.time()
+                    total_elapsed_time = end_time - start_time
+                    total_time += total_elapsed_time
+                    stime, etime = formatted_timedata(start_time, end_time)
+                    node_data.extend([f"{total_elapsed_time:.2f}s", f"{stime} - {etime}"])
+                    summary_data.append(node_data)
         overall_end_time = time.time()
         ostime, oetime = formatted_timedata(overall_start_time, overall_end_time)
         overall_time = f"Start Time: {ostime}   End Time:{oetime}"

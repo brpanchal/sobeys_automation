@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from functools import partial
-import runpy
 import json
 from tests.constants import *
 from tests.helper import *

@@ -1,0 +1,42 @@
+{
+    "version": 4,
+    "minSupportedVersion": 1,
+    "basicConfig": {
+        "comments": "File Agent Default config",
+        "apiPort": 1363,
+        "apiUserID": "",
+        "apiPassword": "",
+        "apiSignonAlways": true,
+        "watchFileInterval": 1,
+        "fileCompletionDelay": 1,
+        "fileAgentUniqueName": "FileAgent",
+        "snmpListenerAddress": "",
+        "snmpListenerPort": 22,
+        "snmpStatusTimeInterval": 30,
+        "info": ""
+    },
+    "watchDirs": {
+        "watchDirList": {
+            "E:\\Program Files\\ConnectDirect\\Server\\Upload": {
+                "watchedDir": "E:\\Program Files\\ConnectDirect\\Server\\Upload",
+                "comments": "",
+                "monitorSubDirectories": false
+            }
+        }
+    },
+    "rules": {
+        "ruleList": [
+            {
+                "name": "Default rule",
+                "ruleStatus": "Disabled",
+                "comments": "Auto generated rule",
+                "lastModified": "2025-03-03T16:20:57.593796500Z",
+                "procClass": "1",
+                "procPriority": "1",
+                "matchCriterion": {
+                    "criteriaList": []
+                }
+            }
+        ]
+    }
+}

@@ -1,0 +1,4 @@
+[
+  {
+    "processFile": "CDFACOPY PROCESS\n\n    SNODE=DMNAT01\n\n        &INFILE='%FA_FILE_FOUND'\n\n        &FILENAME='%FA_NOT_PATH'\n\nCDCP COPY\n\n    FROM (\n\n        FILE='&INFILE'\n\n        PNODE\n\n)\n\nckpt = 2M\n\n    TO (\n\n        FILE = '&FILENAME'\n\n        SNODE\n\n        DISP=RPL\n\n                )\n\nIF (CDCP EQ 0) THEN\nDELFILE RUN TASK PNODE (PGM=Windows) SYSOPTS='CMD(del ~'&INFILE~')'\nEIF\n\nPEND"
+  }]
