@@ -5,6 +5,7 @@ import json
 from tests.constants import *
 from tests.helper import *
 from run_app import *
+from test_cd_rewind_service import TestCDRewind as tcr
 import  logging
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class TestDeployRewind(unittest.TestCase):
         self.fake_args = MagicMock()
         self.fake_args.env = "qa"
         self.fake_args.execution_mode = "preview"
+        self.node_data = tcr.read_file("node_list")
 
     def test_read_file_without_file(self):
         res = read_file(None, None)
@@ -37,7 +39,7 @@ class TestDeployRewind(unittest.TestCase):
         self.assertTrue(isinstance(node_list, list))
 
     def test_read_node_list_json_data(self):
-        with patch("run_app.read_file", return_value=NODE_DATA):
+        with patch("run_app.read_file", return_value=self.node_data):
             node_list = read_node_list_json()
             self.assertTrue(isinstance(node_list[1], list))
             self.assertTrue(isinstance(node_list[1][0], dict))
@@ -82,7 +84,7 @@ class TestDeployRewind(unittest.TestCase):
     def test_main_happy_path(self, mock_input_parser, mock_logger, mock_read_node_list_json, mock_run_service):
         # Arrange
         mock_input_parser.return_value = self.fake_args
-        mock_read_node_list_json.return_value = [[NODE_DATA[1]], [NODE_DATA[0]], [NODE_DATA[2]]]
+        mock_read_node_list_json.return_value = [[self.node_data[1]], [self.node_data[0]], [self.node_data[2]]]
         mock_run_service.side_effect = partial(mock_cd_rewind)
         main()
 
@@ -94,7 +96,7 @@ class TestDeployRewind(unittest.TestCase):
         mock_logger.info.assert_any_call(
             "========== Loading required configuration completed ============="
         )
-        mock_run_service.assert_called_once_with([[NODE_DATA[1]], [NODE_DATA[0]], [NODE_DATA[2]]], self.fake_args)
+        mock_run_service.assert_called_once_with([[self.node_data[1]], [self.node_data[0]], [self.node_data[2]]], self.fake_args)
         # Completion logs should be written in finally
         mock_logger.info.assert_any_call("========== CD rewind process completed ==========")
         mock_logger.info.assert_any_call(
