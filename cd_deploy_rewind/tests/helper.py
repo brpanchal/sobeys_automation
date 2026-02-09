@@ -1,5 +1,6 @@
 from tests.constants import *
 from unittest.mock import patch, MagicMock
+import requests
 
 def mock_cd_rewind(x, y):
     print("mock_cd_rewind")
@@ -41,7 +42,32 @@ def mock_failed_request(*args, **kwargs):
 
 def mock_excep_request(*args, **kwargs):
     fake_resp = MagicMock()
-    fake_resp.status_code = 400
-    fake_resp.json.return_value = None
-    fake_resp.text = str({})
+    resp = requests.Response()
+    resp.status_code = 404
+    resp._content = b'{"errorMessage":"Error found"}'  # optional
+    if kwargs.get('param') == 'HTTPError':
+        fake_resp.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            ERROR_400_MSG,
+            response=resp
+        )
+    elif kwargs.get('param') == 'HTTPErrorWithoutResp':
+        fake_resp.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            ERROR_404_MSG,
+            response=None
+        )
+    elif kwargs.get('param') == 'RequestException':
+        fake_resp.raise_for_status.side_effect = requests.exceptions.RequestException(
+            ERROR_404_MSG,
+            response=None
+        )
+    elif kwargs.get('param') == 'RequestExceptionWithResp':
+        fake_resp.raise_for_status.side_effect = requests.exceptions.RequestException(
+            ERROR_400_MSG,
+            response=resp
+        )
+    else:
+        fake_resp.raise_for_status.side_effect = Exception(ERROR_500_MSG)
+
+    fake_resp.return_value = fake_resp
+
     return fake_resp

@@ -234,3 +234,92 @@ class TestCDRewind(unittest.TestCase):
                 run_cd_rewind_service(None, self.fake_args)
             self.assertIn(CD_REWIND_EXCEPTION, str(cm.exception))
 
+    def test_send_request_exception(self):
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request, param='HTTPError')
+            with self.assertRaises(Exception) as ctx:
+                send_request('GET', self.fake_args.base_url, self.fake_args.env)
+
+            self.assertIn(HTTPERROR_EXPECTED, str(ctx.exception))
+            self.assertIn(ERROR_400, str(ctx.exception))
+
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request, param='RequestExceptionWithResp')
+            with self.assertRaises(Exception) as ctx:
+                send_request('GET', self.fake_args.base_url, self.fake_args.env)
+
+            self.assertIn(REQUEST_EXCEPTION, str(ctx.exception))
+            self.assertIn(ERROR_FOUND, str(ctx.exception))
+
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request, param='RequestException')
+            with self.assertRaises(Exception) as ctx:
+                send_request('GET', self.fake_args.base_url, self.fake_args.env)
+
+            self.assertIn(REQUEST_EXCEPTION, str(ctx.exception))
+            self.assertIn(ERROR_404, str(ctx.exception))
+
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request)
+            with self.assertRaises(Exception) as ctx:
+                send_request('GET', self.fake_args.base_url, self.fake_args.env)
+
+            self.assertIn(UNEXPECTED_ERROR, str(ctx.exception))
+            self.assertIn(ERROR_500, str(ctx.exception))
+
+    def test_sign_on_exception(self):
+        testdata = copy.deepcopy(self.test_data)
+        _, host_dict = get_payload(testdata[1])
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request, param='HTTPError')
+            with self.assertRaises(Exception) as ctx:
+                sign_on(self.fake_args.base_url, self.fake_args.env, host_dict)
+
+            self.assertIn(HTTP_ERROR_TEXT, str(ctx.exception))
+            self.assertIn(ERROR_FOUND, str(ctx.exception))
+
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request, param='RequestExceptionWithResp')
+            with self.assertRaises(Exception) as ctx:
+                sign_on(self.fake_args.base_url, self.fake_args.env, host_dict)
+
+            self.assertIn(REQUEST_EXCEPTION, str(ctx.exception))
+            self.assertIn(ERROR_FOUND, str(ctx.exception))
+
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request, param='RequestException')
+            with self.assertRaises(Exception) as ctx:
+                sign_on(self.fake_args.base_url, self.fake_args.env, host_dict)
+
+            self.assertIn(REQUEST_EXCEPTION, str(ctx.exception))
+            self.assertIn(ERROR_404, str(ctx.exception))
+
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request)
+            with self.assertRaises(Exception) as ctx:
+                sign_on(self.fake_args.base_url, self.fake_args.env, host_dict)
+
+            self.assertIn(UNEXPECTED_ERROR_CODE, str(ctx.exception))
+            self.assertIn(ERROR_500, str(ctx.exception))
+
+        with patch("requests.Session.request") as mq:
+            mq.side_effect = partial(mock_excep_request, param='HTTPErrorWithoutResp')
+            with self.assertRaises(Exception) as ctx:
+                sign_on(self.fake_args.base_url, self.fake_args.env, host_dict)
+
+            self.assertIn(HTTP_ERROR_CODE, str(ctx.exception))
+            self.assertIn(ERROR_404, str(ctx.exception))
+
+    def test_render_table(self):
+        table = render_table(
+            headers=['Data'],
+            rows=[],
+            title='Empty Data Details',
+            style="unicode",
+            padding=7,
+            max_widths=200
+        )
+        self.assertIn(NO_ARTIFACTS, str(table))
+
+
+

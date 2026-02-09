@@ -84,7 +84,7 @@ def ensure_signed_on(env, host_dict):
     if not token:
         sign_on(os.getenv("CDWS_SIGNON"), env, host_dict)
 
-def sign_out(env):
+def ensure_sign_out(env):
     global token
     logger.debug(f"Executing CD sign_out")
     payload = {'userAccessToken': token}
@@ -253,7 +253,7 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]], root_type):
             rows=normalized,
             title=title,
             style="unicode",
-            padding=1,
+            padding=5,
             max_widths=80
         )
 
@@ -295,12 +295,6 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]], root_type):
         )
 
     return table
-
-def ensure_sign_out(env):
-    try:
-        sign_out(env)
-    except Exception as e1:
-        logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
 def count_dicts(data):
     if isinstance(data, dict):
