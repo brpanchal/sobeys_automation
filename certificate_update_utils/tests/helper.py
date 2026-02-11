@@ -4,15 +4,10 @@ import requests
 
 def mock_read_file(*args, **kwargs):
     #print("mock_cert", args, kwargs)
-    data = kwargs.get("return_value")
-    if args[0] == 'WINDOWS_CERTIFICATE':
-        return data[1]
-    elif args[0] == 'UNIX_CERTIFICATE':
-        return data[0]
-    elif args[0] == 'AIX_CERTIFICATE':
-        return data[2]
-
-    return data
+    if args[0] in CERTIFICATES:
+        return kwargs.get("cert")
+    else:
+        return kwargs.get("node")
 
 def mock_request(*args, **kwargs):
     #print("Mocked request", args, kwargs)

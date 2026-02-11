@@ -3,8 +3,8 @@ from unittest.mock import patch, MagicMock
 from functools import partial
 from tests.constants import *
 from tests.helper import *
+from tests.test_cert_app import TestCertApp
 from app.cert_app_manager import *
-from cert_app import read_certificates
 import  logging
 import copy
 import os, json
@@ -16,8 +16,8 @@ class TestCertManager(unittest.TestCase):
     def setUpClass(cls):
         # Load .env only once for the whole test class (faster, less noise)
         load_dotenv()
-        cls.test_data = cls.read_file("node_list")
-        cls.cert_data = cls.read_certificates()
+        cls.test_data = TestCertApp.node_data
+        cls.cert_data = TestCertApp.cert_data
 
     def setUp(self):
         # Common fake args object
@@ -26,19 +26,6 @@ class TestCertManager(unittest.TestCase):
         self.fake_args.execution_mode = EXECUTION_MODE
         self.fake_args.base_url = BASE_URL
         self.fake_args.host_dict = {}
-
-
-    @staticmethod
-    def read_file(file_name):
-        with open(os.path.join(TEST_DATA_PATH, f"{file_name}.json"), "r") as read_file:
-            return json.load(read_file)
-
-    @staticmethod
-    def read_certificates():
-        with patch('cert_app.read_file') as rf:
-            rf.side_effect = partial(mock_read_file, return_value=TestCertManager.test_data)
-            cert_list = read_certificates()
-        return cert_list
 
     def test_ensure_signed_on(self):
         with self.assertRaises(Exception) as cm:
@@ -66,22 +53,22 @@ class TestCertManager(unittest.TestCase):
     def test_get_payload(self):
         testdata = copy.deepcopy(self.test_data)
         payload, host_dict = get_payload(testdata[1], self.cert_data)
-        self.assertEqual(payload['certificateData'], EXPECTED_PAYLOAD_1)
-        self.assertEqual(host_dict, EXPECTED_PAYLOAD_1)
+        self.assertEqual(payload['certificateData'], EXPECTED_PAYLOAD)
+        self.assertEqual(host_dict, HOST_DICT_2)
 
         testdata_1 = copy.deepcopy(self.test_data)
         testdata_1[1].update({'test':"dummy"})
         payload, host_dict = get_payload(testdata_1[1], self.cert_data)
         self.assertIn('test', payload)
-        self.assertEqual(host_dict, EXPECTED_PAYLOAD_1)
+        self.assertEqual(host_dict, HOST_DICT_2)
 
         payload, host_dict = get_payload(testdata_1[0], self.cert_data)
-        self.assertEqual(payload['certificateData'], EXPECTED_PAYLOAD_2)
-        self.assertEqual(host_dict, EXPECTED_PAYLOAD_2)
+        self.assertEqual(payload['certificateData'], EXPECTED_PAYLOAD)
+        self.assertEqual(host_dict, HOST_DICT_1)
 
         payload, host_dict = get_payload(testdata_1[2], self.cert_data)
-        self.assertEqual(payload['certificateData'], EXPECTED_PAYLOAD_3)
-        self.assertEqual(host_dict, EXPECTED_PAYLOAD_3)
+        self.assertEqual(payload['certificateData'], EXPECTED_PAYLOAD)
+        self.assertEqual(host_dict, HOST_DICT_3)
 
         with self.assertRaises(Exception) as cm:
             get_payload([], {})

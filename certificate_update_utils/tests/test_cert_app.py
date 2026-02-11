@@ -16,12 +16,22 @@ class TestCertApp(unittest.TestCase):
         # Load .env only once for the whole test class (faster, less noise)
         load_dotenv()
         cls.node_data = read_file(FILENAME, TEST_DATA_PATH, True)
+        cls.cert = cls.read_any_file(CERT_FILENAME)
+        with patch('cert_app.read_file', return_value=cls.cert):
+            cls.cert_data = read_certificates()
 
     def setUp(self):
         # Common fake args object
         self.fake_args = MagicMock()
         self.fake_args.env = "qa"
         self.fake_args.execution_mode = "preview"
+
+    @staticmethod
+    def read_any_file(file_name):
+        cond = os.path.splitext(file_name)[1] != ""
+        filename =  file_name if cond else f"{file_name}.json"
+        with open(os.path.join(TEST_DATA_PATH, filename), "r") as read_file:
+            return read_file.read() if cond else json.load(read_file)
 
     def test_read_file_without_file(self):
         res = read_file(None, None)
@@ -32,18 +42,17 @@ class TestCertApp(unittest.TestCase):
             self.assertListEqual(list(self.node_data[0].keys()), NODE_LIST, "Not matched keys with data received from file")
 
     def test_read_certificates(self):
-        with patch('cert_app.read_file') as rf:
-            rf.side_effect = partial(mock_read_file, return_value=self.node_data)
+        with patch('cert_app.read_file', return_value=self.cert):
             cert_list = read_certificates()
             self.assertEqual(len(cert_list), 3, "Didn't get all 3 list of nodes based on os_type")
             self.assertTrue(isinstance(cert_list, dict))
-            self.assertTrue(isinstance(cert_list['windows_cert'], dict))
+            self.assertTrue(isinstance(cert_list['windows_cert'], str))
 
     def test_read_certificates_exception(self):
         with patch('cert_app.read_file') as rf:
             rf.side_effect = partial(mock_cert_exception)
             with self.assertRaises(Exception) as cm:
-                cert_list = read_certificates()
+                read_certificates()
             self.assertIn('Error reading certificate file', str(cm.exception))
 
     def test_read_node_list_json_data(self):
@@ -92,7 +101,7 @@ class TestCertApp(unittest.TestCase):
         # Arrange
         mock_input_parser.return_value = self.fake_args
         mock_run_service.return_value = None
-        read_file_data.side_effect = partial(mock_read_file, return_value=self.node_data)
+        read_file_data.side_effect = partial(mock_read_file, node=self.node_data, cert=self.cert)
         main()
 
         # Assert
@@ -123,7 +132,7 @@ class TestCertApp(unittest.TestCase):
         mock_input_parser.return_value = self.fake_args
         mock_run_service.side_effect = partial(mock_cert_exception)
         with self.assertRaises(Exception) as ctx:
-            with patch("cert_app.read_file", return_value=self.node_data):
+            with patch("cert_app.read_file", node=self.node_data, cert=self.cert):
                 main()
 
         self.assertIn("Unexpected exception found during execution: boom", str(ctx.exception))
@@ -141,7 +150,7 @@ class TestCertApp(unittest.TestCase):
     def test_main_finally_always_runs(self, mock_input_parser, mock_logger, *_):
         # Arrange
         mock_input_parser.return_value = self.fake_args
-        with patch("cert_app.read_file", return_value=self.node_data):
+        with patch("cert_app.read_file", node=self.node_data, cert=self.cert):
             with self.assertRaises(Exception):
                 main()
 
