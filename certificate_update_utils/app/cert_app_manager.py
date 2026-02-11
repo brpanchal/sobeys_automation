@@ -7,7 +7,7 @@ import base64
 from dotenv import load_dotenv
 from datetime import datetime
 from typing import Dict, Any, List, Iterable
-from .logger import logger
+from .logger import logger, timestamp
 from .constants import *
 
 ## TODO: create rollback with pem file
@@ -20,7 +20,7 @@ token = None
 cookies = None
 csrf = None
 session = requests.Session()
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 def sign_on(endpoint, env, host_dict):
     global token, cookies, csrf, session
@@ -90,7 +90,7 @@ def ensure_signed_on(env, host_dict):
     if not token:
         sign_on(os.getenv("CDWS_SIGNON"), env, host_dict)
 
-def sign_out(env):
+def ensure_sign_out(env):
     global token
     logger.debug(f"Executing CD sign_out")
     payload = {'userAccessToken': token}
@@ -365,13 +365,6 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
     lines.append("")
 
     return "\n".join(lines)
-
-
-def ensure_sign_out(env):
-    try:
-        sign_out(env)
-    except Exception as e1:
-        logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
 
 def run_cert_service(node_list_json, certificates, args):

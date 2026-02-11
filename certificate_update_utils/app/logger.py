@@ -3,11 +3,13 @@ import os
 from .constants import *
 from datetime import datetime
 
-# Ensure the logs directory exists
-os.makedirs(LOG_FILE_PATH, exist_ok=True)
-
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_file = f"{LOG_FILE_PATH}/app_{timestamp}.log"
+
+log_path = os.path.join(PARENT_DIR, f"{NODE_CERT_BACKUP_PATH}{timestamp}")
+log_file = f"{log_path}/App_{timestamp}.log"
+
+# Ensure the logs directory exists
+os.makedirs(log_path, exist_ok=True)
 
 # Configure the logger
 logging.basicConfig(
