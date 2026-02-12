@@ -11,10 +11,11 @@ def mock_read_file(*args, **kwargs):
 
 def mock_request(*args, **kwargs):
     #print("Mocked request", args, kwargs)
+    data = kwargs.get("cert") if kwargs.get("cert") else {}
     fake_resp = MagicMock()
     fake_resp.status_code = 200
-    fake_resp.json.return_value = {}
-    fake_resp.text = str({})
+    fake_resp.json.return_value = data
+    fake_resp.text = str(data)
     fake_resp.raise_for_status = MagicMock()  # <-- no exception
     return fake_resp
 

@@ -90,7 +90,7 @@ def ensure_signed_on(env, host_dict):
     if not token:
         sign_on(os.getenv("CDWS_SIGNON"), env, host_dict)
 
-def ensure_sign_out(env):
+def sign_out(env):
     global token
     logger.debug(f"Executing CD sign_out")
     payload = {'userAccessToken': token}
@@ -141,10 +141,12 @@ def get_certificate(env, backup=False, node=None):
 
     ## get backup of existing certificate before update if backup flag Trues
     if backup:
+        logger.debug(f"Started backup of certificate for node {node}")
         node_backup = f"{NODE_CERT_BACKUP_PATH}{timestamp}"
         os.makedirs(PARENT_DIR+node_backup, exist_ok=True)
         with open(os.path.join(PARENT_DIR, node_backup, f"{node}_CERT.json"), "w") as json_file:
             json.dump(result[0][0], json_file, indent=4)
+        logger.debug(f"Completed backup of certificate for node {node}")
     return result
 
 def update_certificate(payload, env):
@@ -365,6 +367,12 @@ def format_tree_report(node_name: str, rows: List[Dict[str, Any]]) -> str:
     lines.append("")
 
     return "\n".join(lines)
+
+def ensure_sign_out(env):
+    try:
+        sign_out(env)
+    except Exception as e1:
+        logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
 
 def run_cert_service(node_list_json, certificates, args):

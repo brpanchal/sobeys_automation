@@ -74,14 +74,15 @@ class TestCertManager(unittest.TestCase):
             get_payload([], {})
         self.assertIn(PAYLOAD_EXCEPTION, str(cm.exception))
     #
-    # def test_get_certificate(self):
-    #     with patch("requests.Session.request") as mq:
-    #             mq.side_effect = partial(mock_request)
-    #             result_1, result_2 = get_certificate(self.fake_args.env)
-    #             self.assertEqual(type(result_1), dict)
-    #             self.assertEqual(type(result_2), list)
-    #             self.assertGreater(len(result_1), 0)
-    #             self.assertGreater(len(result_2), 0)
+    def test_get_certificate(self):
+        with patch("requests.Session.request") as mq:
+            cert_data =  [[{'certificateLabel': 'ABC', 'certificateData': EXPECTED_PAYLOAD}]]
+            mq.side_effect = partial(mock_request, cert=cert_data)
+            result = get_certificate(self.fake_args.env)
+            self.assertEqual(type(result[0][0]), dict)
+            self.assertEqual(type(result), list)
+            self.assertGreater(len(result), 0)
+            self.assertEqual(result, cert_data)
     #
     # def test_display_cd_artifacts(self):
     #     process_data = copy.deepcopy(self.process_test_data)
@@ -120,24 +121,25 @@ class TestCertManager(unittest.TestCase):
     #         )
     #         self.assertEqual(len(cm.output), 2)
     #
-    # def test_get_cd_artifacts_backup(self):
-    #     process_list = copy.deepcopy(self.process_test_data)
-    #     wd_rule_data = copy.deepcopy(self.wd_rule_test_data)
-    #     process_data = copy.deepcopy(self.process_data)
-    #     with patch("requests.Session.request") as mq:
-    #         mq.side_effect = partial(mock_request, process_list=process_list, wd_rule_data=wd_rule_data, process_data=process_data)
-    #         with self.assertLogs(level='INFO') as cm:
-    #             get_cd_artifacts(self.fake_args.env, backup=True, node="Sample")
-    #
-    #         self.assertTrue(
-    #             any(START_BACKUP_EXPECTED in line for line in cm.output),
-    #             START_BACKUP_LOG_MSG,
-    #         )
-    #
-    #         self.assertTrue(
-    #             any(COMPLETE_BACKUP_EXPECTED in line for line in cm.output),
-    #             COMPLETE_BACKUP_LOG_MSG,
-    #         )
+    def test_get_certificate_backup(self):
+        with patch("requests.Session.request") as mq:
+            cert_data =  [[{'certificateLabel': 'ABC', 'certificateData': EXPECTED_PAYLOAD}]]
+            mq.side_effect = partial(mock_request, cert=cert_data)
+            with self.assertLogs(level='DEBUG') as cm:
+                result = get_certificate(self.fake_args.env, backup=True, node="Sample")
+
+            self.assertEqual(type(result[0][0]), dict)
+            self.assertEqual(type(result), list)
+
+            self.assertTrue(
+                any(START_BACKUP_EXPECTED in line for line in cm.output),
+                START_BACKUP_LOG_MSG,
+            )
+
+            self.assertTrue(
+                any(COMPLETE_BACKUP_EXPECTED in line for line in cm.output),
+                COMPLETE_BACKUP_LOG_MSG,
+            )
     #
     # def test_run_cd_rewind_service(self):
     #     process_list = copy.deepcopy(self.process_test_data)
