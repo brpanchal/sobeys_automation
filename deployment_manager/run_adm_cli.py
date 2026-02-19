@@ -20,6 +20,13 @@ logging.getLogger("urllib3.connectionpool").setLevel(logging.CRITICAL)
 
 def main():
     try:
+        def is_truthy(v):
+            if isinstance(v, bool):
+                return v
+            # strings
+            s = str(v).strip().lower()
+            return s in {"true", "remove"}
+
         parser = argparse.ArgumentParser(
             description="Deploy interfaces on a given environment"
         )
@@ -78,7 +85,7 @@ def main():
         validate_env(env, args)
 
         default_cd_rule = api_gateway.get_default_cdrule_config()
-        interfaces = [(interface['name'], interface['cd_rule']) for interface in env.interfaces if bool(interface['deploy']) == True]
+        interfaces = [(interface['name'], interface['cd_rule'], interface['deploy']) for interface in env.interfaces if is_truthy(interface['deploy'])]
         payload = {
             "env_name": env.name,
             "mode": args.execution_mode,

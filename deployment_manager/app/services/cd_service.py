@@ -167,6 +167,11 @@ class CDServices:
         logger.debug(f"payload: {payload}")
         return self.__send_request("PUT", os.getenv('CDWS_FA_RULES'), payload)
 
+    def __remove_rule(self, payload):
+        logger.debug(f"Executing CD update_rule to remove")
+        logger.debug(f"payload: {payload}")
+        return self.__send_request("DELETE", os.getenv('CDWS_FA_RULES'), payload)
+
     def __apply_changes(self):
         logger.debug(f"Executing CD apply_changes")
         return self.__send_request("PUT", os.getenv('CDWS_FA_APPLY'))
@@ -361,6 +366,22 @@ class CDServices:
             raise RuntimeError(f"Failed to deploy CDP {cdp_name}, RuntimeError: {e}")
         logger.info(f"CDP completed")
 
+    def remove_rule(self, rule_content, mode="preview"):
+        try:
+            data = json.loads(rule_content)
+            if mode == "preview":
+                logger.info(f"Rule_Payload to be remove: {data}")
+            else:
+                logger.info(f"Rule removing process start...")
+                status, res = self.__remove_rule({'name': data.get('name')})
+                self.__apply_changes()
+                if status:
+                    logger.info(f"Rule removed successfully: {res}")
+                else:
+                    logger.info(f"Rule not removed due to %s", res)
+        except Exception as e:
+            raise RuntimeError(f"Failed to remove rule, RuntimeError: {e}")
+
     def deploy_rule(self, rule_content, mode="preview"):
         logger.info(f"Rule starting")
         try:
@@ -381,7 +402,7 @@ class CDServices:
             raise RuntimeError(f"Failed to deploy Rule, RuntimeError: {e}")
         logger.info(f"Rule completed")
 
-    def deploy_cd_artifacts(self, cd_obj:ConnectDirect, env, mode="preview"):
+    def deploy_cd_artifacts(self, cd_obj:ConnectDirect, env, mode="preview", deploy_flag=None):
         logger.info("Deploying CD artifacts...")
         self.initialize_cd_properties(env.upper(), cd_obj.os_type, cd_obj.hostname, cd_obj.credentials)
 
@@ -390,9 +411,12 @@ class CDServices:
         if not status:
             raise RuntimeError(f"Failed to sign on to Connect:Direct : {sign_on_json}.")
 
-        self.deploy_cdp(cd_obj.cdp_name, cd_obj.cdp, cd_obj.os_type, mode)
-        self.deploy_watch_dir(cd_obj.watch_dir, mode)
-        self.deploy_rule(cd_obj.rule, mode)
+        if deploy_flag.lower() == 'remove':
+            self.remove_rule(cd_obj.rule, mode)
+        else:
+            self.deploy_cdp(cd_obj.cdp_name, cd_obj.cdp, cd_obj.os_type, mode)
+            self.deploy_watch_dir(cd_obj.watch_dir, mode)
+            self.deploy_rule(cd_obj.rule, mode)
 
         # Sign out from the Connect:Direct
         self.__sign_out()

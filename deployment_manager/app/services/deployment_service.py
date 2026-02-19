@@ -51,12 +51,13 @@ class DeploymentService:
             logger.info(f"Deployment Status: {request.status}")
             self.tracker.save_request(request)
 
-            logger.info(f"Starting deployment for {request.env_name} with interfaces {request.interfaces}")
+            interface_count = len(request.interfaces)
+            logger.info(f"Starting deployment for {request.env_name} , interface count = {interface_count} with interfaces {request.interfaces}")
 
             # 2️⃣ Simulate deployment process (replace with actual logic)
             # Getting only True interface lists
-            for interface, cd_rule in request.interfaces:
-                    logger.info(f"=============== Deploying interface: {interface} ===============")
+            for idx, (interface, cd_rule, deploy) in enumerate(request.interfaces, start=1):
+                    logger.info(f"=============== Deploying interface [{idx}/{interface_count}]: {interface} ===============")
                     idm = InterfaceDeploymentModel(interface_name=interface)
                     interface_deployments.append(idm)
                     idm.mark_in_progress()
@@ -76,7 +77,7 @@ class DeploymentService:
                             raise RuntimeError(f"Hostname/Node information not found for {source_node} in host.json")
 
                         #B2BI Deployment
-                        b2bi_obj = self.b2bi_deployment(interface, request, updated_artifact[2])
+                        b2bi_obj = self.b2bi_deployment(deploy, request, updated_artifact[2])
                         idm.b2bi_artifacts["b2bi_obj"] = b2bi_obj
 
                         #CD Deployment
@@ -84,7 +85,7 @@ class DeploymentService:
                         if cd_obj.node_name:
                             idm.cd_artifacts["cd_obj"] = cd_obj
                             cd_service = CDServices()
-                            cd_service.deploy_cd_artifacts(cd_obj, request.env_name, request.mode)
+                            cd_service.deploy_cd_artifacts(cd_obj, request.env_name, request.mode, deploy)
                         idm.mark_success()
 
                     except Exception as e:
@@ -349,10 +350,10 @@ class DeploymentService:
 
         return b2bi_obj
 
-    def b2bi_deployment(self, interface, request, b2bi_artifact):
+    def b2bi_deployment(self, deploy_flag, request, b2bi_artifact):
         b2bi_obj = self.fetch_all_codelist_entry(b2bi_artifact, request)
         b2bi_service = B2BIService(self.codelist_dict)
-        b2bi_service.deploy_b2b_artifacts(b2bi_obj, request.env_name, request.mode)
+        b2bi_service.deploy_b2b_artifacts(b2bi_obj, request.env_name, request.mode, deploy_flag)
         return b2bi_obj
 
     def check_interface_deployment_prerequisites(self, request, interface_artifacts, deployment_json):

@@ -33,6 +33,7 @@ class B2BIService:
         self.version_id = None
         self.username = None
         self.password = None
+        self.deploy_flag = None
         self.url = None
         self.execution_mode = None
         self.env = None
@@ -143,14 +144,17 @@ class B2BIService:
             if execution_result:
                 # codelist entries found
                 cl = execution_result
-                matches = self.match_codelist_with_b2bi_codelist(cl.codes, consumer_codes[0])
-                logger.debug("Matches = %s", matches)
-                if len(matches) > 0:
-                    logger.info(f"Found {len(matches)} matches for codelist {consumer_codes[0]} and Skipping")
+                json_object = consumer_codes[0].to_dict()
+                if self.deploy_flag.lower() == 'remove':
+                    self.remove_codelist_artifacts(cl.id, json_object, codelist_name)
                 else:
-                    logger.debug(f"Inserting codelist entry {consumer_codes[0]}")
-                    json_object = consumer_codes[0].to_dict()
-                    self.insert_cl_sbys_delivery_codelist(cl.id, json_object, codelist_name)
+                    matches = self.match_codelist_with_b2bi_codelist(cl.codes, consumer_codes[0])
+                    logger.debug("Matches = %s", matches)
+                    if len(matches) > 0:
+                        logger.info(f"Found {len(matches)} matches for codelist {consumer_codes[0]} and Skipping")
+                    else:
+                        logger.debug(f"Inserting codelist entry {consumer_codes[0]}")
+                        self.insert_cl_sbys_delivery_codelist(cl.id, json_object, codelist_name)
             else:
                 logger.debug("*** No codelist found ***")
         logger.info(f"{codelist_name} completed.")
@@ -170,14 +174,17 @@ class B2BIService:
             if execution_result:
                 cl = execution_result
                 for consumer_code in consumer_codes:
-                    logger.debug("id = %s, Name = %s, Codes size = %s", cl.id, cl.codeListName, len(cl.codes))
-                    matches = self.match_codelist_with_b2bi_codelist(cl.codes, consumer_code)
-                    if len(matches) > 0:
-                        logger.info(f"Found {len(matches)} matches for codelist {consumer_code} and Skipping")
+                    json_object = consumer_code.to_dict()
+                    if self.deploy_flag.lower() == 'remove':
+                        self.remove_codelist_artifacts(cl.id, json_object, codelist_name)
                     else:
-                        logger.debug(f"Inserting codelist entry {consumer_code}")
-                        json_object = consumer_code.to_dict()
-                        self.insert_cl_sbys_delivery_codelist(cl.id, json_object, codelist_name)
+                        logger.debug("id = %s, Name = %s, Codes size = %s", cl.id, cl.codeListName, len(cl.codes))
+                        matches = self.match_codelist_with_b2bi_codelist(cl.codes, consumer_code)
+                        if len(matches) > 0:
+                            logger.info(f"Found {len(matches)} matches for codelist {consumer_code} and Skipping")
+                        else:
+                            logger.debug(f"Inserting codelist entry {consumer_code}")
+                            self.insert_cl_sbys_delivery_codelist(cl.id, json_object, codelist_name)
             else:
                 logger.debug("*** No codelist found ***")
             logger.info(f"{codelist_name} completed.")
@@ -227,8 +234,56 @@ class B2BIService:
             result = self.create_codelist(cl_id, payload, codelist_name)
             return result
 
+    def remove_codelist_artifacts(self, cl_id, payload, codelist_name):
+        if self.is_preview():
+            msg = f"Codelist entry to be remove:{codelist_name}:{payload}"
+            logger.info(msg)
+            return None
+        else:
+            result = self.remove_codelist(cl_id, payload)
+            logger.info(f"Codelist entry removed successfully response:{result}")
+            return result
+
     def is_preview(self):
         return self.execution_mode.lower() == "preview"
+
+    def remove_codelist(self, cl_id, payload):
+        try:
+            # Build API URL
+            codelist_api = f"{self.url}{os.getenv("B2BI_CODELIST")}"
+            query_params = f"{cl_id}/actions/bulkdeletecodes"
+            url = codelist_api + query_params
+            logger.debug(f"Deleting codelist entry for {cl_id} at {url} with payload {payload}")
+
+            username = self.username
+            password = self.password
+
+            headers = {"Accept": "application/json"}
+
+            # Make the GET request
+            urllib3.disable_warnings()
+            response = requests.post(url, headers=headers, auth=HTTPBasicAuth(username, password), json=payload,
+                                     verify=False)
+
+            # Success case
+            if response.status_code == 200:
+                execution_result = response.json()
+                logger.debug("Codelist entry deleted successfully")
+
+            else:
+                logger.debug(response.text)
+                logger.error(f"Failed to delete codelist entry. Status code: {response.status_code}")
+                raise Exception(f"Failed to delete codelist entry. Status code: {response.status_code}")
+        except requests.exceptions.RequestException as req_err:
+            # Handles network, timeout, connection issues
+            logger.error(f"Request error while delete codelist entry {cl_id}: {req_err}")
+            raise Exception(f"Request error while delete codelist entry {cl_id}: {req_err}")
+        except Exception as e:
+            # Handles unexpected issues (JSON decode, etc.)
+            logger.error(f"Unexpected error while delete codelist entry for {cl_id}: {e}")
+            raise Exception(f"Unexpected error while delete codelist entry for {cl_id}: {e}")
+
+        return execution_result
 
     def create_codelist(self, cl_id, payload, codelist_name):
         url = None  # keep reference for debugging/logging in finally
@@ -272,18 +327,19 @@ class B2BIService:
         #    logger.debug(f"Finished execution of creating codelist entry for {cl_id}. URL: {url}")
         return execution_result
 
-    def initialize_b2bi_properties(self, env, mode):
+    def initialize_b2bi_properties(self, env, mode, deploy_flag):
         self.url = f"{os.getenv(f"{env}_B2B_URL")}"
         self.username = f"{os.getenv(f"{env}_B2B_USER")}"
         self.password = f"{os.getenv(f"{env}_B2B_PASSWORD")}"
+        self.deploy_flag = deploy_flag
         self.version_id = ""
         self.execution_mode = mode
         self.env = env
 
 
-    def deploy_b2b_artifacts(self, b2bi_obj: B2BI, env_name: str, mode: str = "preview"):
+    def deploy_b2b_artifacts(self, b2bi_obj: B2BI, env_name: str, mode: str = "preview", deploy_flag=None):
         logger.info("Deploying B2BI artifacts...")
-        self.initialize_b2bi_properties(env_name, mode)
+        self.initialize_b2bi_properties(env_name, mode, deploy_flag)
 
         self.deploy_identify_consumer(b2bi_obj.identify_consumer)
         self.deploy_delivery_cd(b2bi_obj.delivery_cd)
