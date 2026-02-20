@@ -135,29 +135,7 @@ class B2BIService:
 
     def deploy_identify_consumer(self, identify_consumer_obj):
         codelist_name = os.getenv("B2BI_CODELIST_SBYS_FW_IDENTIFY_CONSUMER")
-        logger.info(f"{codelist_name} starting")
-        if identify_consumer_obj:
-            logger.debug(f"*** Building {codelist_name} Codelist")
-            execution_result = self.get_codelist_records_from_b2bi(codelist_name)
-            consumer_codes = [B2BCodeListEntry(**code) for code in identify_consumer_obj.get("codes")]
-
-            if execution_result:
-                # codelist entries found
-                cl = execution_result
-                json_object = consumer_codes[0].to_dict()
-                if self.deploy_flag.lower() == 'remove':
-                    self.remove_codelist_artifacts(cl.id, json_object, codelist_name)
-                else:
-                    matches = self.match_codelist_with_b2bi_codelist(cl.codes, consumer_codes[0])
-                    logger.debug("Matches = %s", matches)
-                    if len(matches) > 0:
-                        logger.info(f"Found {len(matches)} matches for codelist {consumer_codes[0]} and Skipping")
-                    else:
-                        logger.debug(f"Inserting codelist entry {consumer_codes[0]}")
-                        self.insert_cl_sbys_delivery_codelist(cl.id, json_object, codelist_name)
-            else:
-                logger.debug("*** No codelist found ***")
-        logger.info(f"{codelist_name} completed.")
+        self.fetch_and_build_codelist(codelist_name, identify_consumer_obj)
 
     def fetch_and_build_codelist(self, codelist_name, codelist):
         if codelist:
@@ -189,13 +167,13 @@ class B2BIService:
                 logger.debug("*** No codelist found ***")
             logger.info(f"{codelist_name} completed.")
 
-    def deploy_delivery_cd(self, delivery_sftp_obj):
+    def deploy_delivery_cd(self, delivery_cd_obj):
         codelist_name = os.getenv("B2BI_CODELIST_SBYS_FW_DELIVERY_CD")
-        self.fetch_and_build_codelist(codelist_name, delivery_sftp_obj)
+        self.fetch_and_build_codelist(codelist_name, delivery_cd_obj)
 
-    def deploy_delivery_gen(self, delivery_sftp_obj):
+    def deploy_delivery_gen(self, delivery_gen_obj):
         codelist_name = os.getenv("B2BI_CODELIST_SBYS_FW_DELIVERY_GEN")
-        self.fetch_and_build_codelist(codelist_name, delivery_sftp_obj)
+        self.fetch_and_build_codelist(codelist_name, delivery_gen_obj)
 
     def deploy_delivery_sftp(self, delivery_sftp_obj):
         codelist_name = os.getenv("B2BI_CODELIST_SBYS_FW_DELIVERY_SFTP")

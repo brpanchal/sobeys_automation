@@ -85,7 +85,7 @@ def main():
         validate_env(env, args)
 
         default_cd_rule = api_gateway.get_default_cdrule_config()
-        interfaces = [(interface['name'], interface['cd_rule'], interface['deploy']) for interface in env.interfaces if is_truthy(interface['deploy'])]
+        interfaces = [(interface['name'], interface['cd_rule'], str(interface['deploy'])) for interface in env.interfaces if is_truthy(interface['deploy'])]
         payload = {
             "env_name": env.name,
             "mode": args.execution_mode,

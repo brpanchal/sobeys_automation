@@ -327,7 +327,7 @@ class DeploymentService:
         file_list = self.git_connector.fetch_file_list_from_dir(request.repo_name, b2bi_artifact, request.branch_name)
         for file_path in file_list:
             if 'SBYS_FW_IDENTIFY_CONSUMER' in file_path:
-                b2bi_obj.identify_consumer = self.fetch_codelist(request.repo_name, file_path)
+                b2bi_obj.identify_consumer.append(self.fetch_codelist(request.repo_name, file_path))
             elif 'SBYS_FW_DELIVERY_CD' in file_path:
                 b2bi_obj.delivery_cd.append(self.fetch_codelist(request.repo_name, file_path))
             elif 'SBYS_FW_DELIVERY_GEN' in file_path:

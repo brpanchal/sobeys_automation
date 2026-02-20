@@ -1,6 +1,6 @@
 class B2BI:
     def __init__(self):
-        self.identify_consumer = None
+        self.identify_consumer: list = []
         self.delivery_cd: list = []
         self.delivery_gen: list = []
         self.delivery_sftp: list = []
