@@ -1,0 +1,17 @@
+[
+              {
+                "node": "Dummy1",
+                "hostname": "dummy1.com",
+                "os_type": "unix system"
+              },
+                {
+                "node": "Dummy2",
+                "hostname": "dummy2.com",
+                "os_type": "windows system"
+              },
+              {
+                "node": "Dummy3",
+                "hostname": "dummy3.com",
+                "os_type": "aix system"
+              }
+            ]
