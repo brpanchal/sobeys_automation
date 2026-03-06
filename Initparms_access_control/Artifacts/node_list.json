@@ -3,7 +3,7 @@
 	"node": "SAPRMSS4",
 	"hostname": "c1-s4dsap-d.sobeys.com",
     "os_type": "unix",
-    "fileagent.enable": "N"
+    "fileagent.enable": "Y"
   }
 
 ]
