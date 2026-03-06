@@ -1,5 +1,5 @@
 # Introduction 
-Certificate updater utils is to update the certificate for particular node to a given environment.
+Enable disable initparms utils is to update the initparms file agent for particular node to a given environment.
 
 # Project Setup and Usage Guide
 **Prerequisites**
@@ -10,13 +10,12 @@ Before you begin, ensure you have the following installed:
 **Configuration Setup**
 Create and configure the following files:
 1.env: Include environment variables such as API keys, database URLs, etc.
-2.node_list.json: It includes the node information like hostname, os_type and certificate details
+2.node_list.json: It includes the node information like hostname, os_type and initparms details
     eg..  {
             "node": "<node_name>",
             "hostname": "<node>.sobeys.com",
             "os_type":"windows or unix or AIX",
-            "certificateLabel": "client-api",
-            "certificatePassphrase": ""
+            "fileagent.enable": "N"
           }
 
 **Installation Steps:**
@@ -27,7 +26,7 @@ Create and configure the following files:
 2. Navigate to the Project Directory
     Open your command prompt or terminal and change to the project directory:
     ```bash
-    cd certificate_update_utils
+    cd enable_disable_initparms_utils
 
 3. Install the required packages and modules
     ```bash
@@ -35,15 +34,12 @@ Create and configure the following files:
 
 4. Setup Environment
 
-    A) Manual Step: Create a .env file within the `/certificate_update_utils/` folder. Copy the contents from env_info.txt into it.
+    A) Manual Step: Create a .env file within the `/enable_disable_initparms_utils/` folder. Copy the contents from env_info.txt into it.
 
     C) The following parameter values are required and must be obtained from the Admin. Once received,
       update them in the .env file accordingly like below(eg..).
 
         NODE_LIST_FILE="node_list.json"
-        UNIX_CERTIFICATE="CERT-20251208-NEW.pem"
-        AIX_CERTIFICATE="CERT-20251208-NEW.pem"
-        WINDOWS_CERTIFICATE="CERT-20251208-NEW.pem"
 
         # Below parameters are across the environment, set for all the environment like DEV, QA, PROD, SIT etc.
         DEV_CDWS_URL="https://dev-cd.example.com"
@@ -57,9 +53,9 @@ Create and configure the following files:
    - Command Line:ss
      -  Preview Mode:
         ```bash
-        python cert_app.py --env "dev" --execution-mode "preview"
+        python run_app.py --env "dev" --execution-mode "preview"
      -  Execute Mode:    
         ```bash
-        python cert_app.py --env "dev" --execution-mode "execute"
+        python run_app.py --env "dev" --execution-mode "execute"
 
 # Troubleshooting

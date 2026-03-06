@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from collections import defaultdict
 from app.logger import logger
 from app.constants import *
-from app.initparam_app_manager import run_initparam_service
+from app.initparms_app_manager import run_initparms_service
 
 load_dotenv()
 
@@ -60,7 +60,7 @@ def main():
         logger.info("========== Loading required configuration started =============")
         node_list_json = read_node_list_json()
         logger.info("========== Loading required configuration completed =============")
-        run_initparam_service(node_list_json, args)
+        run_initparms_service(node_list_json, args)
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:
