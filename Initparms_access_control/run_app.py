@@ -55,7 +55,7 @@ def input_parser():
 def main():
     args = input_parser()
     try:
-        logger.info(f"========== CD Active Passive initparams process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
+        logger.info(f"========== CD Active Passive initparams with file agent process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
         node_list_json = read_node_list_json()
@@ -64,7 +64,7 @@ def main():
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:
-        logger.info(f"========== CD Active Passive initparams process completed ==========")
+        logger.info(f"========== CD Active Passive initparams with file agent process completed ==========")
 
 if __name__ == '__main__':
     main()

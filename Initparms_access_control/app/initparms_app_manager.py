@@ -138,12 +138,12 @@ def get_initparam_details(env, json_type=None, backup=False, node=None):
 
     ## get backup of existing certificate before update if backup flag Trues
     if backup:
-        logger.debug(f"Started backup of initparams details for node {node}")
+        logger.info(f"Started backup of initparams details for node {node}")
         node_backup = f"{NODE_INIT_BACKUP_PATH}{timestamp}"
         os.makedirs(PARENT_DIR+node_backup, exist_ok=True)
         with open(os.path.join(PARENT_DIR, node_backup, f"{node}_INITPARAMS.json"), "w") as json_file:
             json.dump(result, json_file, indent=4)
-        logger.debug(f"Completed backup of initparams details for node {node}")
+        logger.info(f"Completed backup of initparams details for node {node}")
     return result
 
 def update_initparam_details(payload, env):
@@ -164,7 +164,7 @@ def ensure_sign_out(env):
     except Exception as e1:
         logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
-def prepare_initparams_data(os_type, data, flag):
+def prepare_initparams_data(host_dict, data, flag):
     if isinstance(data, list):
         initparamsdata = data[0]['initParmsData']
 
@@ -176,28 +176,124 @@ def prepare_initparams_data(os_type, data, flag):
             r'(?i)(?P<prefix>\bcdfa\.enable\s*=\s*)(?P<val>[yn])\b'
         )
 
-        if "windows" in os_type.lower():
+        if "windows" in host_dict['os_type'].lower():
             pattern = PATTERN_FILEAGENT
-            final_value = flag.upper()
+            updated_value = flag.upper()
             display_key = 'fileagent.enable'
         else:
             pattern = PATTERN_CDFA
-            final_value = flag.lower()
+            updated_value = flag.lower()
             display_key = 'cd.file.agent:cdfa.enable'
 
-        final_result =  pattern.sub(lambda m: m.group("prefix") + final_value, initparamsdata)
+        m = re.search(pattern, initparamsdata)
+        current_value = None
+        if m:
+            current_value =m.group('val')
+        final_result =  pattern.sub(lambda m: m.group("prefix") + updated_value, initparamsdata)
         data[0]['initParmsData'] = final_result
-        logger.info(f"Updated data to be pushed: {display_key}:{final_value} & Payload:{data}")
+        #logger.info(f"Updated data to be pushed: {display_key}:{updated_value} & Payload:{data}")
     else:
         #logger.info(f"Actual init params data: {json.dumps(data, indent=4)}")
-        if "windows" in os_type.lower():
+        if "windows" in host_dict['os_type'].lower():
+            current_value = data['File Agent']['fileagent.enable']
             data['File Agent']['fileagent.enable'] = flag.upper()
             display_key = 'fileagent.enable'
+            updated_value = flag.upper()
         else:
+            current_value = data['cd.file.agent']['cdfa.enable']
             data['cd.file.agent']['cdfa.enable'] = flag.lower()
             display_key = 'cd.file.agent:cdfa.enable'
-        logger.info(f"Updated data to be pushed: {display_key}:{flag} & Payload:{json.dumps(data, indent=4)}")
-    return data
+            updated_value = flag.lower()
+        #logger.info(f"Updated data to be pushed: {display_key}:{flag} & Payload:{json.dumps(data, indent=4)}")
+
+    action = 'Skip' if current_value == updated_value else "Update"
+    rows = [
+        [display_key, current_value, updated_value, action]
+    ]
+
+    logger.info(format_tree_report(host_dict.get("node", "N/A"), rows))
+    return data, action
+
+def format_tree_report(node_name: str, rows) -> str:
+    """
+    Render a initparms hierarchy report in ASCII table format.
+    """
+    # Prepare rows normalized to strings and handle missing keys gracefully
+
+    # Headers
+    headers = ["FileAgent Key", "Current Status", "New Status", "Action"]
+
+    # Compute column widths: max of header and content per column
+    col_widths = [
+        max(len(headers[0]), *(len(row[0]) for row in rows)) if rows else len(headers[0]),
+        max(len(headers[1]), *(len(row[1]) for row in rows)) if rows else len(headers[1]),
+        max(len(headers[2]), *(len(row[2]) for row in rows)) if rows else len(headers[2]),
+        max(len(headers[3]), *(len(row[3]) for row in rows)) if rows else len(headers[3])
+    ]
+
+    # Helper to build a row with padding
+    def build_row(cols, widths, sep="│"):
+        cells = [
+            f" {str(col).ljust(width)} " for col, width in zip(cols, widths)
+        ]
+        return sep + sep.join(cells) + sep
+
+    # Helper to build horizontal rules
+    def build_rule(widths, style="top"):
+        # style: "top", "mid", "bottom"
+        if style == "top":
+            left, mid, right, junction = "┌", "┬", "┐", "─"
+        elif style == "mid":
+            left, mid, right, junction = "├", "┼", "┤", "─"
+        else:
+            left, mid, right, junction = "└", "┴", "┘", "─"
+
+        segments = [junction * (w + 2) for w in widths]  # +2 for spaces added around cells
+        return left + mid.join(segments) + right
+
+    # Title banner (kept from your original style, width expanded to table width)
+    table_total_width = sum(w + 2 for w in col_widths) + (len(col_widths) + 1)  # cells + separators
+    title_line = f"│   Initparms fileagent details for node: {node_name:<24}│"
+
+    # Adjust title box width to match table width aesthetically (minimum to fit)
+    # Ensure the decorative box matches or exceeds the table width
+    deco_inner_width = max(len(title_line) - 2, table_total_width - 2)
+    deco_top = "┌" + "─" * deco_inner_width + "┐"
+    deco_bottom = "└" + "─" * deco_inner_width + "┘"
+    # Re-center the title within the decorative box
+    title_text = f"   Initparms fileagent details for node: {node_name}"
+    padding = deco_inner_width - len(title_text)
+    if padding >= 0:
+        left_pad = padding // 2
+        right_pad = padding - left_pad
+        title_line = "│" + (" " * left_pad) + title_text + (" " * right_pad) + "│"
+    else:
+        # Fallback if node_name is extremely long; truncate
+        trimmed = title_text[:deco_inner_width]
+        title_line = "│" + trimmed + "│"
+
+    lines = [
+        "",
+        deco_top,
+        title_line,
+        deco_bottom,
+        build_rule(col_widths, style="top"),
+        build_row(headers, col_widths),
+        build_rule(col_widths, style="mid"),
+    ]
+
+    # Data rows
+    if rows:
+        for row in rows:
+            lines.append(build_row(row, col_widths))
+    else:
+        # No data case
+        lines.append(build_row(("— No data —", "", ""), [col_widths[0], col_widths[1], col_widths[2]]))
+
+    lines.append(build_rule(col_widths, style="bottom"))
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def run_initparms_service(node_list_json, args):
@@ -213,16 +309,19 @@ def run_initparms_service(node_list_json, args):
                         result = get_initparam_details(args.env, True)
                         logger.info(
                             f"========== Found existing CD Initparams details for node {host_dict['node']} ==========")
-                        prepare_initparams_data(host_dict['os_type'], result, payload['fileagent.enable'])
+                        prepare_initparams_data(host_dict, result, payload['fileagent.enable'])
                     else:
                         logger.debug(f"Updating CD Initparams for node: {host_dict['node']}")
                         result = get_initparam_details(args.env, False, True, host_dict['node'])
-                        modifiedinit = prepare_initparams_data(host_dict['os_type'], result, payload['fileagent.enable'])
-                        status, res = update_initparam_details(modifiedinit, args.env)
-                        if status:
-                            logger.info(f"The key CD Initparams has been successfully updated for node: {host_dict['node']} and received response: {res}")
+                        modifiedinit, action = prepare_initparams_data(host_dict, result, payload['fileagent.enable'])
+                        if action == 'Update':
+                            status, res = update_initparam_details(modifiedinit, args.env)
+                            if status:
+                                logger.info(f"CD Initparams file agent has been successfully updated for node: {host_dict['node']} and received response: {res}")
+                            else:
+                                logger.info(f"CD Initparams file agent has been failed for node: {host_dict['node']} and received response: {res}")
                         else:
-                            logger.info(f"The key CD Initparams has been failed for node: {host_dict['node']} and received response: {res}")
+                            logger.info("Process is skipped due to same status found.")
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
                 except Exception as e:
                     logger.error(f"========== Processing failed for CD Initparams due to {e} ==========")
