@@ -295,6 +295,18 @@ def format_tree_report(node_name: str, rows) -> str:
 
     return "\n".join(lines)
 
+def prerequisite_to_process_node(node):
+    fileagent = node.get("fileagent.enable", "")
+    hostname = node.get("hostname", "")
+    os_type = node.get("os_type", "")
+    if not(os_type and hostname):
+        raise Exception(f"node_list not configured properly. either hostname or os_type not found or invalid values for node:{node.get('node')}.")
+
+    if not fileagent:
+        raise Exception(f"No fileagent config found for node:{node.get('node')}.")
+
+    if fileagent.lower() not in ['y', 'n']:
+        raise Exception(f"fileagent value configured wrongly for node:{node.get('node')}.")
 
 def run_initparms_service(node_list_json, args):
     try:
@@ -302,6 +314,7 @@ def run_initparms_service(node_list_json, args):
             for node in node_list:
                 try:
                     logger.info(f"========== Processing started for node {node['node']} =============")
+                    prerequisite_to_process_node(node)
                     payload, host_dict = get_payload(node)
                     ensure_signed_on(args.env, host_dict)
 
