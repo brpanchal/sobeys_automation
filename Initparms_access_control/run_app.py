@@ -1,6 +1,8 @@
 import os
 import  json
 import argparse
+import traceback
+import sys
 from dotenv import load_dotenv
 from collections import defaultdict
 from app.logger import logger
@@ -54,17 +56,22 @@ def input_parser():
 
 def main():
     args = input_parser()
+    return_code = 0
     try:
         logger.info(f"========== CD Active Passive initparams with file agent process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
         node_list_json = read_node_list_json()
         logger.info("========== Loading required configuration completed =============")
-        run_initparms_service(node_list_json, args)
+        status = run_initparms_service(node_list_json, args)
+        if status >0:
+            return_code = 1
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:
         logger.info(f"========== CD Active Passive initparams with file agent process completed ==========")
+        logger.info(f"Exit code = {return_code}")
+        sys.exit(return_code)
 
 if __name__ == '__main__':
     main()

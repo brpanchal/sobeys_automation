@@ -5,6 +5,8 @@ import requests
 import urllib3
 import base64
 from dotenv import load_dotenv
+from streamlit import success
+
 from .logger import logger, timestamp
 from .constants import *
 import  re
@@ -13,6 +15,7 @@ load_dotenv()
 token = None
 cookies = None
 csrf = None
+report_list = []
 session = requests.Session()
 
 def sign_on(endpoint, env, host_dict):
@@ -165,6 +168,7 @@ def ensure_sign_out(env):
         logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
 def prepare_initparams_data(host_dict, data, flag):
+    global report_list
     if isinstance(data, list):
         initparamsdata = data[0]['initParmsData']
 
@@ -192,6 +196,7 @@ def prepare_initparams_data(host_dict, data, flag):
         final_result =  pattern.sub(lambda m: m.group("prefix") + updated_value, initparamsdata)
         data[0]['initParmsData'] = final_result
         #logger.info(f"Updated data to be pushed: {display_key}:{updated_value} & Payload:{data}")
+        action = 'Skipped' if current_value == updated_value else "Updated"
     else:
         #logger.info(f"Actual init params data: {json.dumps(data, indent=4)}")
         if "windows" in host_dict['os_type'].lower():
@@ -205,30 +210,28 @@ def prepare_initparams_data(host_dict, data, flag):
             display_key = 'cd.file.agent:cdfa.enable'
             updated_value = flag.lower()
         #logger.info(f"Updated data to be pushed: {display_key}:{flag} & Payload:{json.dumps(data, indent=4)}")
+        action = 'Skip' if current_value == updated_value else "Update"
 
-    action = 'Skip' if current_value == updated_value else "Update"
-    rows = [
-        [display_key, current_value, updated_value, action]
-    ]
-
-    logger.info(format_tree_report(host_dict.get("node", "N/A"), rows))
+    report_list.append([host_dict['node'], host_dict['os_type'], display_key, current_value, updated_value, action])
     return data, action
 
-def format_tree_report(node_name: str, rows) -> str:
+def format_tree_report(rows) -> str:
     """
     Render a initparms hierarchy report in ASCII table format.
     """
     # Prepare rows normalized to strings and handle missing keys gracefully
 
     # Headers
-    headers = ["FileAgent Key", "Current Status", "New Status", "Action"]
+    headers = ["Node", "OS Type", "FileAgent Key", "Current FileAgent Status", "New FileAgent Status", "Action/Status"]
 
     # Compute column widths: max of header and content per column
     col_widths = [
         max(len(headers[0]), *(len(row[0]) for row in rows)) if rows else len(headers[0]),
         max(len(headers[1]), *(len(row[1]) for row in rows)) if rows else len(headers[1]),
         max(len(headers[2]), *(len(row[2]) for row in rows)) if rows else len(headers[2]),
-        max(len(headers[3]), *(len(row[3]) for row in rows)) if rows else len(headers[3])
+        max(len(headers[3]), *(len(row[3]) for row in rows)) if rows else len(headers[3]),
+        max(len(headers[4]), *(len(row[4]) for row in rows)) if rows else len(headers[4]),
+        max(len(headers[5]), *(len(row[5]) for row in rows)) if rows else len(headers[5])
     ]
 
     # Helper to build a row with padding
@@ -253,7 +256,7 @@ def format_tree_report(node_name: str, rows) -> str:
 
     # Title banner (kept from your original style, width expanded to table width)
     table_total_width = sum(w + 2 for w in col_widths) + (len(col_widths) + 1)  # cells + separators
-    title_line = f"│   Initparms fileagent details for node: {node_name:<24}│"
+    title_line = f"│   Initparms fileAgent details for all nodes   │"
 
     # Adjust title box width to match table width aesthetically (minimum to fit)
     # Ensure the decorative box matches or exceeds the table width
@@ -261,7 +264,7 @@ def format_tree_report(node_name: str, rows) -> str:
     deco_top = "┌" + "─" * deco_inner_width + "┐"
     deco_bottom = "└" + "─" * deco_inner_width + "┘"
     # Re-center the title within the decorative box
-    title_text = f"   Initparms fileagent details for node: {node_name}"
+    title_text = f"   Initparms fileAgent details for all nodes   "
     padding = deco_inner_width - len(title_text)
     if padding >= 0:
         left_pad = padding // 2
@@ -309,6 +312,9 @@ def prerequisite_to_process_node(node):
         raise Exception(f"fileagent value configured wrongly for node:{node.get('node')}.")
 
 def run_initparms_service(node_list_json, args):
+    global report_list
+    total_start_time = time.time()
+    success = failed = 0
     try:
         for node_list in node_list_json:
             for node in node_list:
@@ -320,14 +326,12 @@ def run_initparms_service(node_list_json, args):
 
                     if args.execution_mode == 'preview':
                         result = get_initparam_details(args.env, True)
-                        logger.info(
-                            f"========== Found existing CD Initparams details for node {host_dict['node']} ==========")
                         prepare_initparams_data(host_dict, result, payload['fileagent.enable'])
                     else:
                         logger.debug(f"Updating CD Initparams for node: {host_dict['node']}")
                         result = get_initparam_details(args.env, False, True, host_dict['node'])
                         modifiedinit, action = prepare_initparams_data(host_dict, result, payload['fileagent.enable'])
-                        if action == 'Update':
+                        if action == 'Updated':
                             status, res = update_initparam_details(modifiedinit, args.env)
                             if status:
                                 logger.info(f"CD Initparams file agent has been successfully updated for node: {host_dict['node']} and received response: {res}")
@@ -336,9 +340,16 @@ def run_initparms_service(node_list_json, args):
                         else:
                             logger.info("Process is skipped due to same status found.")
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
+                    success += 1
                 except Exception as e:
                     logger.error(f"========== Processing failed for CD Initparams due to {e} ==========")
+                    failed += 1
                 finally:
                     ensure_sign_out(args.env)
+        total_end_time = time.time()
+        logger.info(format_tree_report(report_list))
+        logger.info(f"Success: {success}  Failed: {failed}")
+        logger.info(f"Total execution duration: {total_end_time - total_start_time:.2f} seconds")
+        return failed
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")

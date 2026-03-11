@@ -1,5 +1,18 @@
 # Introduction 
-Enable disable initparms utils is to update the initparms file agent for particular node to a given environment.
+Initparms access control utility is to enable/disable the initparms file agent for particular node to a given environment.
+
+**GET Int Parm**
+The Get Init Parms API is used to retrieve the current initialization parameters of the Connect:Direct server.
+
+**PUT Update Process API**
+Update Init Parms API is used to alter the initialization parameters of the Connect:Direct server.
+
+┌──────────┬───────────────────────────┬────────────────┬──────────┬───────────────────────┐
+│ Method   │ URI (Endpoint)            │ Parameter Name │ Required │ Valid Values          │
+├──────────┼───────────────────────────┼────────────────┼──────────┼───────────────────────┤
+│ GET      │/cdwebconsole/svc/initparms│ formatOutput   │ Optional │  y or n               │
+│ PUT      │/cdwebconsole/svc/initparms│ initParmsData  │ Yes      │ {"initParmsData":""}  │
+└──────────┴───────────────────────────┴────────────────┴──────────┴───────────────────────┘
 
 # Project Setup and Usage Guide
 **Prerequisites**
@@ -60,6 +73,3 @@ Create and configure the following files:
 
 # Troubleshooting
 
-
-TODO: add details about PUT API 
-https://www.ibm.com/docs/en/connect-direct/6.4.0?topic=ipra-put-update-process-api
