@@ -5,8 +5,12 @@ PARENT_DIR="./Artifacts/"
 NODE_INIT_BACKUP_PATH = "NODE_INIT_BACKUP/"
 NODE_LIST_FILE = "NODE_LIST_FILE"
 SYSTEMS = ["windows", "aix", "unix"]
-CERT_KEYS = ("certificateLabel", "validFrom", "validTo")
-POSSIBLE_CHILD_KEYS = ["children", "subCertificates", "childCertificates"]
-EXPIRED_SEV_DAYS = 0
-CRITICAL_SEV_DAYS = 7
-WARNING_SEV_DAYS = 30
+FILEAGENT_REGEX = r'(?i)(?P<prefix>\bfileagent\.enable\s*=\s*)(?P<val>[YN])\b'
+CDFA_REGEX = r'(?i)(?P<prefix>\bcdfa\.enable\s*=\s*)(?P<val>[yn])\b'
+FILEAGENT_KEY = "fileagent.enable"
+CDFA_KEY = 'cd.file.agent:cdfa.enable'
+PREVIEW_ACTION = ["Skip", "Skipped"]
+EXECUTE_ACTION = ["Update", "Updated"]
+STATUS_MSG = ["Not mentioned", "Invalid value"]
+TABLE_HEADER = ["Sr. No.", "Node", "OS Type", "FileAgent Key", "Current FileAgent Status", "New FileAgent Status", "Action/Status"]
+TITLE = "Initparms fileAgent details for all nodes"

@@ -1,7 +1,6 @@
 import os
-import  json
+import json
 import argparse
-import traceback
 import sys
 from dotenv import load_dotenv
 from collections import defaultdict
@@ -29,10 +28,9 @@ def read_node_list_json():
                 buckets[SYSTEMS[1]].append(node)
             else:
                 buckets[SYSTEMS[2]].append(node)
+        return [buckets[SYSTEMS[0]], buckets[SYSTEMS[2]], buckets[SYSTEMS[1]]]
     except Exception as e:
         raise Exception(f"Error reading nodes list json file: {e}")
-
-    return [buckets[SYSTEMS[0]], buckets[SYSTEMS[2]], buckets[SYSTEMS[1]]]
 
 def input_parser():
     parser = argparse.ArgumentParser(
@@ -67,6 +65,8 @@ def main():
         if status >0:
             return_code = 1
     except Exception as e:
+        logger.error(f"Unexpected exception found during execution: {str(e)}")
+        return_code = 1
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:
         logger.info(f"========== CD Active Passive initparams with file agent process completed ==========")

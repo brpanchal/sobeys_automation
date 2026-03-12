@@ -1,12 +1,10 @@
 import os
-import  json
+import json
 import time
 import requests
 import urllib3
 import base64
 from dotenv import load_dotenv
-from streamlit import success
-
 from .logger import logger, timestamp
 from .constants import *
 import  re
@@ -167,62 +165,65 @@ def ensure_sign_out(env):
     except Exception as e1:
         logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
-def prepare_initparams_data(host_dict, data, flag):
+def prepare_initparams_data(host_dict, data, flag, mode):
     global report_list
     if isinstance(data, list):
         initparamsdata = data[0]['initParmsData']
 
-        PATTERN_FILEAGENT = re.compile(
-            r'(?i)(?P<prefix>\bfileagent\.enable\s*=\s*)(?P<val>[YN])\b'
-        )
+        PATTERN_FILEAGENT = re.compile(FILEAGENT_REGEX)
+        PATTERN_CDFA = re.compile(CDFA_REGEX)
 
-        PATTERN_CDFA = re.compile(
-            r'(?i)(?P<prefix>\bcdfa\.enable\s*=\s*)(?P<val>[yn])\b'
-        )
-
-        if "windows" in host_dict['os_type'].lower():
+        if SYSTEMS[0] in host_dict['os_type'].lower():
             pattern = PATTERN_FILEAGENT
-            updated_value = flag.upper()
-            display_key = 'fileagent.enable'
+            display_key = FILEAGENT_KEY
+            updated_value = flag.upper() if isinstance(flag, str) else None
         else:
             pattern = PATTERN_CDFA
-            updated_value = flag.lower()
-            display_key = 'cd.file.agent:cdfa.enable'
+            display_key = CDFA_KEY
+            updated_value = flag.lower() if isinstance(flag, str) else None
 
         m = re.search(pattern, initparamsdata)
         current_value = None
         if m:
             current_value =m.group('val')
-        final_result =  pattern.sub(lambda m: m.group("prefix") + updated_value, initparamsdata)
+        final_result =  pattern.sub(lambda m: m.group("prefix") + updated_value if updated_value else "", initparamsdata)
         data[0]['initParmsData'] = final_result
-        #logger.info(f"Updated data to be pushed: {display_key}:{updated_value} & Payload:{data}")
-        action = 'Skipped' if current_value == updated_value else "Updated"
     else:
-        #logger.info(f"Actual init params data: {json.dumps(data, indent=4)}")
-        if "windows" in host_dict['os_type'].lower():
+        if SYSTEMS[0] in host_dict['os_type'].lower():
             current_value = data['File Agent']['fileagent.enable']
-            data['File Agent']['fileagent.enable'] = flag.upper()
-            display_key = 'fileagent.enable'
-            updated_value = flag.upper()
+            display_key = FILEAGENT_KEY
+            flag_value = flag.upper() if isinstance(flag, str) else None
+            updated_value = flag_value
+            data['File Agent']['fileagent.enable'] = flag_value
         else:
             current_value = data['cd.file.agent']['cdfa.enable']
-            data['cd.file.agent']['cdfa.enable'] = flag.lower()
-            display_key = 'cd.file.agent:cdfa.enable'
-            updated_value = flag.lower()
-        #logger.info(f"Updated data to be pushed: {display_key}:{flag} & Payload:{json.dumps(data, indent=4)}")
-        action = 'Skip' if current_value == updated_value else "Update"
+            display_key = CDFA_KEY
+            flag_value = flag.lower() if isinstance(flag, str) else None
+            updated_value = flag_value
+            data['cd.file.agent']['cdfa.enable'] = flag_value
 
-    report_list.append([host_dict['node'], host_dict['os_type'], display_key, current_value, updated_value, action])
+    action, newval = perform_action(current_value, updated_value, mode)
+
+    report_list.append(["1", host_dict['node'], host_dict['os_type'], display_key, current_value, newval, action])
     return data, action
+
+def perform_action(current, newval, mode):
+    if newval is None:
+        return PREVIEW_ACTION[0] if mode == "preview" else PREVIEW_ACTION[1], STATUS_MSG[0]
+    elif newval.lower() not in ['y', 'n']:
+        return PREVIEW_ACTION[0] if mode == "preview" else PREVIEW_ACTION[1], STATUS_MSG[1]
+    elif current == newval:
+        return PREVIEW_ACTION[0] if mode == "preview" else PREVIEW_ACTION[1], newval
+    else:
+        return EXECUTE_ACTION[0] if mode == "preview" else EXECUTE_ACTION[1], newval
 
 def format_tree_report(rows) -> str:
     """
     Render a initparms hierarchy report in ASCII table format.
     """
-    # Prepare rows normalized to strings and handle missing keys gracefully
 
     # Headers
-    headers = ["Node", "OS Type", "FileAgent Key", "Current FileAgent Status", "New FileAgent Status", "Action/Status"]
+    headers = TABLE_HEADER
 
     # Compute column widths: max of header and content per column
     col_widths = [
@@ -231,7 +232,8 @@ def format_tree_report(rows) -> str:
         max(len(headers[2]), *(len(row[2]) for row in rows)) if rows else len(headers[2]),
         max(len(headers[3]), *(len(row[3]) for row in rows)) if rows else len(headers[3]),
         max(len(headers[4]), *(len(row[4]) for row in rows)) if rows else len(headers[4]),
-        max(len(headers[5]), *(len(row[5]) for row in rows)) if rows else len(headers[5])
+        max(len(headers[5]), *(len(row[5]) for row in rows)) if rows else len(headers[5]),
+        max(len(headers[6]), *(len(row[6]) for row in rows)) if rows else len(headers[6])
     ]
 
     # Helper to build a row with padding
@@ -256,7 +258,7 @@ def format_tree_report(rows) -> str:
 
     # Title banner (kept from your original style, width expanded to table width)
     table_total_width = sum(w + 2 for w in col_widths) + (len(col_widths) + 1)  # cells + separators
-    title_line = f"│   Initparms fileAgent details for all nodes   │"
+    title_line = f"│   {TITLE}   │"
 
     # Adjust title box width to match table width aesthetically (minimum to fit)
     # Ensure the decorative box matches or exceeds the table width
@@ -264,7 +266,7 @@ def format_tree_report(rows) -> str:
     deco_top = "┌" + "─" * deco_inner_width + "┐"
     deco_bottom = "└" + "─" * deco_inner_width + "┘"
     # Re-center the title within the decorative box
-    title_text = f"   Initparms fileAgent details for all nodes   "
+    title_text = f"   {TITLE}   "
     padding = deco_inner_width - len(title_text)
     if padding >= 0:
         left_pad = padding // 2
@@ -287,11 +289,12 @@ def format_tree_report(rows) -> str:
 
     # Data rows
     if rows:
-        for row in rows:
+        for index, row in enumerate(rows):
+            row[0] =  str(index+1)
             lines.append(build_row(row, col_widths))
     else:
         # No data case
-        lines.append(build_row(("— No data —", "", ""), [col_widths[0], col_widths[1], col_widths[2]]))
+        lines.append(build_row(("", "", "", "", "— No data —", "", ""), [col_widths[0], col_widths[1], col_widths[2], col_widths[3], col_widths[4], col_widths[5], col_widths[6]]))
 
     lines.append(build_rule(col_widths, style="bottom"))
     lines.append("")
@@ -299,22 +302,15 @@ def format_tree_report(rows) -> str:
     return "\n".join(lines)
 
 def prerequisite_to_process_node(node):
-    fileagent = node.get("fileagent.enable", "")
     hostname = node.get("hostname", "")
     os_type = node.get("os_type", "")
     if not(os_type and hostname):
         raise Exception(f"node_list not configured properly. either hostname or os_type not found or invalid values for node:{node.get('node')}.")
 
-    if not fileagent:
-        raise Exception(f"No fileagent config found for node:{node.get('node')}.")
-
-    if fileagent.lower() not in ['y', 'n']:
-        raise Exception(f"fileagent value configured wrongly for node:{node.get('node')}.")
-
 def run_initparms_service(node_list_json, args):
     global report_list
     total_start_time = time.time()
-    success = failed = 0
+    success = failed = skipped = updated = 0
     try:
         for node_list in node_list_json:
             for node in node_list:
@@ -326,19 +322,21 @@ def run_initparms_service(node_list_json, args):
 
                     if args.execution_mode == 'preview':
                         result = get_initparam_details(args.env, True)
-                        prepare_initparams_data(host_dict, result, payload['fileagent.enable'])
+                        prepare_initparams_data(host_dict, result, payload.get('fileagent.enable', None), args.execution_mode)
                     else:
                         logger.debug(f"Updating CD Initparams for node: {host_dict['node']}")
                         result = get_initparam_details(args.env, False, True, host_dict['node'])
-                        modifiedinit, action = prepare_initparams_data(host_dict, result, payload['fileagent.enable'])
-                        if action == 'Updated':
+                        modifiedinit, action = prepare_initparams_data(host_dict, result, payload.get('fileagent.enable', None), args.execution_mode)
+                        if action == EXECUTE_ACTION[1]:
                             status, res = update_initparam_details(modifiedinit, args.env)
                             if status:
+                                updated += 1
                                 logger.info(f"CD Initparams file agent has been successfully updated for node: {host_dict['node']} and received response: {res}")
                             else:
                                 logger.info(f"CD Initparams file agent has been failed for node: {host_dict['node']} and received response: {res}")
                         else:
-                            logger.info("Process is skipped due to same status found.")
+                            skipped+=1
+                            logger.info("Current status matches the requested status; skipping the update.")
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
                     success += 1
                 except Exception as e:
@@ -348,8 +346,14 @@ def run_initparms_service(node_list_json, args):
                     ensure_sign_out(args.env)
         total_end_time = time.time()
         logger.info(format_tree_report(report_list))
-        logger.info(f"Success: {success}  Failed: {failed}")
+        if args.execution_mode == 'preview':
+            logger.info(
+                f"Success: {success}  Failed: {failed}")
+        else:
+            logger.info(f"Success: {success}  Failed: {failed}  Skipped:{skipped}   Updated:{updated}")
         logger.info(f"Total execution duration: {total_end_time - total_start_time:.2f} seconds")
+        logger.info("#Skipped: Status count of node which skipped due to same status or requested fileagent status have invalid or not configured")
+        logger.info("#updated: Status count of node which update the fileagent with enable/disable(Y/N) flag.")
         return failed
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")

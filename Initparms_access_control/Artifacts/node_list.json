@@ -10,6 +10,12 @@
     "hostname": "10.155.114.43",
     "os_type":"windows",
     "fileagent.enable": "y"
+  },
+  {
+    "node": "DMNAT01",
+    "hostname": "10.155.114.43",
+    "os_type":"windows",
+    "fileagent.enable":"null"
   }
 
 ]
