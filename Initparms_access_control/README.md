@@ -30,6 +30,10 @@ Create and configure the following files:
             "os_type":"windows or unix or AIX",
             "fileagent.enable": "N"
           }
+    1) fileagent.enable: "Y" or "y" or "N" or "n" 							------- allowed -- will be skipping or update accordingly
+    2) fileagent.enable: any other value apart "Y" or "y" or "N" or "n" 	-------not allowed -- will be skipping
+    #Skip/Skipped: Status of node which skip due to same status or requested fileagent status have invalid or not configured.
+    #Update/updated: Status of node which update the fileagent with enable/disable(Y/N) flag.
 
 **Installation Steps:**
 1.  Clone the repository
@@ -39,7 +43,7 @@ Create and configure the following files:
 2. Navigate to the Project Directory
     Open your command prompt or terminal and change to the project directory:
     ```bash
-    cd enable_disable_initparms_utils
+    cd initparms_access_control
 
 3. Install the required packages and modules
     ```bash
@@ -47,7 +51,7 @@ Create and configure the following files:
 
 4. Setup Environment
 
-    A) Manual Step: Create a .env file within the `/enable_disable_initparms_utils/` folder. Copy the contents from env_info.txt into it.
+    A) Manual Step: Create a .env file within the `/initparms_access_control/` folder. Copy the contents from env_info.txt into it.
 
     C) The following parameter values are required and must be obtained from the Admin. Once received,
       update them in the .env file accordingly like below(eg..).

@@ -336,7 +336,7 @@ def run_initparms_service(node_list_json, args):
                                 logger.info(f"CD Initparams file agent has been failed for node: {host_dict['node']} and received response: {res}")
                         else:
                             skipped+=1
-                            logger.info("Current status matches the requested status; skipping the update.")
+                            logger.info("Current status matches the requested status or incorrect configured; skipping the update.")
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
                     success += 1
                 except Exception as e:
