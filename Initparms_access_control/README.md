@@ -1,11 +1,11 @@
 # Introduction 
-Initparms access control utility is to enable/disable the initparms file agent for particular node to a given environment.
+FileAgent Status control utility is to enable/disable the file agent status for particular node to a given environment.
 
 **GET Int Parm**
-The Get Init Parms API is used to retrieve the current initialization parameters of the Connect:Direct server.
+The Get Init Parms API is used to retrieve the current file agent status of node on Connect:Direct server.
 
 **PUT Update Process API**
-Update Init Parms API is used to alter the initialization parameters of the Connect:Direct server.
+Update Init Parms API is used to alter the current file agent status of node on the Connect:Direct server.
 
 ┌──────────┬───────────────────────────┬────────────────┬──────────┬───────────────────────┐
 │ Method   │ URI (Endpoint)            │ Parameter Name │ Required │ Valid Values          │

@@ -19,16 +19,20 @@ def read_file(file_name, path,  json_type=False):
 def read_node_list_json():
     try:
         node_list = read_file(NODE_LIST_FILE, PARENT_DIR, True)
-        buckets = defaultdict(list)
+        seq_list = []
         for node in node_list:
-            os_type = node.get("os_type", "").lower()
-            if SYSTEMS[0] in os_type:
-                buckets[SYSTEMS[0]].append(node)
-            elif SYSTEMS[1] in os_type:
-                buckets[SYSTEMS[1]].append(node)
-            else:
-                buckets[SYSTEMS[2]].append(node)
-        return [buckets[SYSTEMS[0]], buckets[SYSTEMS[2]], buckets[SYSTEMS[1]]]
+            seq_list.append([node])
+        return seq_list
+        # buckets = defaultdict(list)
+        # for node in node_list:
+        #     os_type = node.get("os_type", "").lower()
+        #     if SYSTEMS[0] in os_type:
+        #         buckets[SYSTEMS[0]].append(node)
+        #     elif SYSTEMS[1] in os_type:
+        #         buckets[SYSTEMS[1]].append(node)
+        #     else:
+        #         buckets[SYSTEMS[2]].append(node)
+        # return [buckets[SYSTEMS[0]], buckets[SYSTEMS[2]], buckets[SYSTEMS[1]]]
     except Exception as e:
         raise Exception(f"Error reading nodes list json file: {e}")
 
@@ -56,7 +60,7 @@ def main():
     args = input_parser()
     return_code = 0
     try:
-        logger.info(f"========== CD Active Passive initparams with file agent process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
+        logger.info(f"========== CD Enable Disable file agent status process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
         node_list_json = read_node_list_json()
@@ -69,7 +73,7 @@ def main():
         return_code = 1
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
     finally:
-        logger.info(f"========== CD Active Passive initparams with file agent process completed ==========")
+        logger.info(f"========== CD Enable Disable file agent status process completed ==========")
         logger.info(f"Exit code = {return_code}")
         sys.exit(return_code)
 

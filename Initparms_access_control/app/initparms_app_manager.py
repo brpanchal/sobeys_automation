@@ -204,7 +204,7 @@ def prepare_initparams_data(host_dict, data, flag, mode):
 
     action, newval = perform_action(current_value, updated_value, mode)
 
-    report_list.append(["1", host_dict['node'], host_dict['os_type'], display_key, current_value, newval, action])
+    report_list.append(["1", host_dict['node'], host_dict['hostname'], host_dict['os_type'], display_key, current_value, newval, action])
     return data, action
 
 def perform_action(current, newval, mode):
@@ -233,7 +233,8 @@ def format_tree_report(rows) -> str:
         max(len(headers[3]), *(len(row[3]) for row in rows)) if rows else len(headers[3]),
         max(len(headers[4]), *(len(row[4]) for row in rows)) if rows else len(headers[4]),
         max(len(headers[5]), *(len(row[5]) for row in rows)) if rows else len(headers[5]),
-        max(len(headers[6]), *(len(row[6]) for row in rows)) if rows else len(headers[6])
+        max(len(headers[6]), *(len(row[6]) for row in rows)) if rows else len(headers[6]),
+        max(len(headers[7]), *(len(row[7]) for row in rows)) if rows else len(headers[7])
     ]
 
     # Helper to build a row with padding
@@ -294,7 +295,7 @@ def format_tree_report(rows) -> str:
             lines.append(build_row(row, col_widths))
     else:
         # No data case
-        lines.append(build_row(("", "", "", "", "— No data —", "", ""), [col_widths[0], col_widths[1], col_widths[2], col_widths[3], col_widths[4], col_widths[5], col_widths[6]]))
+        lines.append(build_row(("", "", "", "", "— No data —", "", "", ""), [col_widths[0], col_widths[1], col_widths[2], col_widths[3], col_widths[4], col_widths[5], col_widths[6], col_widths[7]]))
 
     lines.append(build_rule(col_widths, style="bottom"))
     lines.append("")
@@ -307,10 +308,20 @@ def prerequisite_to_process_node(node):
     if not(os_type and hostname):
         raise Exception(f"node_list not configured properly. either hostname or os_type not found or invalid values for node:{node.get('node')}.")
 
-def run_initparms_service(node_list_json, args):
+def generate_report(mode, success, failed, skipped, updated, skip, update, total_time):
     global report_list
+    logger.info(format_tree_report(report_list))
+    if mode == 'preview':
+        logger.info(
+            f"Success: {success}  Failed: {failed}  Skip:{skip}   Update:{update}")
+    else:
+        logger.info(f"Success: {success}  Failed: {failed}  Skipped:{skipped}   Updated:{updated}")
+    logger.info(f"Total execution duration: {total_time:.2f} seconds")
+    logger.info("ℹ️ CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows")
+
+def run_initparms_service(node_list_json, args):
     total_start_time = time.time()
-    success = failed = skipped = updated = 0
+    success = failed = skipped = updated = skip = update = 0
     try:
         for node_list in node_list_json:
             for node in node_list:
@@ -322,38 +333,35 @@ def run_initparms_service(node_list_json, args):
 
                     if args.execution_mode == 'preview':
                         result = get_initparam_details(args.env, True)
-                        prepare_initparams_data(host_dict, result, payload.get('fileagent.enable', None), args.execution_mode)
+                        _, action = prepare_initparams_data(host_dict, result, payload.get('fileagent.enable', None), args.execution_mode)
+                        if action == PREVIEW_ACTION[0]:
+                            skip+=1
+                        else:
+                            update+=1
                     else:
-                        logger.debug(f"Updating CD Initparams for node: {host_dict['node']}")
+                        logger.debug(f"Updating CD FileAgent status for node: {host_dict['node']}")
                         result = get_initparam_details(args.env, False, True, host_dict['node'])
                         modifiedinit, action = prepare_initparams_data(host_dict, result, payload.get('fileagent.enable', None), args.execution_mode)
                         if action == EXECUTE_ACTION[1]:
                             status, res = update_initparam_details(modifiedinit, args.env)
                             if status:
                                 updated += 1
-                                logger.info(f"CD Initparams file agent has been successfully updated for node: {host_dict['node']} and received response: {res}")
+                                logger.info(f"CD file agent status has been successfully updated for node: {host_dict['node']} and received response: {res}")
                             else:
-                                logger.info(f"CD Initparams file agent has been failed for node: {host_dict['node']} and received response: {res}")
+                                logger.info(f"CD file agent status has been failed for node: {host_dict['node']} and received response: {res}")
                         else:
                             skipped+=1
                             logger.info("Current status matches the requested status or incorrect configured; skipping the update.")
                     logger.info(f"========== Processing completed for node {host_dict['node']} =============")
                     success += 1
                 except Exception as e:
-                    logger.error(f"========== Processing failed for CD Initparams due to {e} ==========")
+                    logger.error(f"========== Processing failed for CD FileAgent due to {e} ==========")
                     failed += 1
                 finally:
                     ensure_sign_out(args.env)
         total_end_time = time.time()
-        logger.info(format_tree_report(report_list))
-        if args.execution_mode == 'preview':
-            logger.info(
-                f"Success: {success}  Failed: {failed}")
-        else:
-            logger.info(f"Success: {success}  Failed: {failed}  Skipped:{skipped}   Updated:{updated}")
-        logger.info(f"Total execution duration: {total_end_time - total_start_time:.2f} seconds")
-        logger.info("#Skipped: Status count of node which skipped due to same status or requested fileagent status have invalid or not configured")
-        logger.info("#updated: Status count of node which update the fileagent with enable/disable(Y/N) flag.")
+        generate_report(args.execution_mode, success, failed, skipped, updated, skip, update,
+                        total_end_time - total_start_time)
         return failed
     except Exception as e:
         raise Exception(f"Unexpected exception found during execution: {str(e)}")
