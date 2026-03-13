@@ -319,7 +319,7 @@ def generate_report(mode, success, failed, skipped, updated, skip, update, total
     logger.info(f"Total execution duration: {total_time:.2f} seconds")
     logger.info("ℹ️ CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows")
 
-def run_initparms_service(node_list_json, args):
+def fileagent_status_service(node_list_json, args):
     total_start_time = time.time()
     success = failed = skipped = updated = skip = update = 0
     try:

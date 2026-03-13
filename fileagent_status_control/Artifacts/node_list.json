@@ -3,7 +3,7 @@
 	"node": "SAPRMSS4",
 	"hostname": "c1-s4dsap-d.sobeys.com",
     "os_type": "unix",
-    "fileagent.enable": "y"
+    "fileagent.enable": "n"
   },
   {
     "node": "DMNAT01",
@@ -12,10 +12,9 @@
     "fileagent.enable": "y"
   },
   {
-    "node": "DMNAT01",
-    "hostname": "10.155.114.43",
-    "os_type":"windows",
-    "fileagent.enable":"null"
+	"node": "SAPRMSS41",
+	"hostname": "c1-s4dsap-d.sobeys.com",
+    "os_type": "unix"
   }
 
 ]

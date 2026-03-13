@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from collections import defaultdict
 from app.logger import logger
 from app.constants import *
-from app.initparms_app_manager import run_initparms_service
+from app.fileagent_status_app import fileagent_status_service
 
 load_dotenv()
 
@@ -38,7 +38,7 @@ def read_node_list_json():
 
 def input_parser():
     parser = argparse.ArgumentParser(
-        description="Active Passive initparams for CD on a given environment"
+        description="Active Passive File Agent Status for node on CD on a given environment"
     )
 
     # Add arguments
@@ -65,7 +65,7 @@ def main():
         logger.info("========== Loading required configuration started =============")
         node_list_json = read_node_list_json()
         logger.info("========== Loading required configuration completed =============")
-        status = run_initparms_service(node_list_json, args)
+        status = fileagent_status_service(node_list_json, args)
         if status >0:
             return_code = 1
     except Exception as e:
