@@ -1,11 +1,13 @@
 # Introduction 
-FileAgent Status control utility is to enable/disable the file agent status for particular node to a given environment.
+Connect Direct (CD) File Agent Status controlling utility is to enable/disable the file agent status for the configured CD nodes.
+
+Utility is using below APIs.
 
 **GET Int Parm**
-The Get Init Parms API is used to retrieve the current file agent status of node on Connect:Direct server.
+The Get Init Parms API is used to retrieve the current file agent status of a node on Connect:Direct server.
 
 **PUT Update Process API**
-Update Init Parms API is used to alter the current file agent status of node on the Connect:Direct server.
+Update Init Parms API is used to alter the current file agent status of a node on the Connect:Direct server.
 
 ┌──────────┬───────────────────────────┬────────────────┬──────────┬───────────────────────┐
 │ Method   │ URI (Endpoint)            │ Parameter Name │ Required │ Valid Values          │
@@ -22,17 +24,18 @@ Before you begin, ensure you have the following installed:
 
 **Configuration Setup**
 Create and configure the following files:
-1.env: Include environment variables such as API keys, database URLs, etc.
-2.node_list.json: It includes the node information like hostname, os_type and initparms details
+1. .env: Include environment variables such as API keys, database URLs, etc.
+2. node_list.json: It includes the node information like hostname, os_type and initparms details
     eg..  {
             "node": "<node_name>",
             "hostname": "<node>.sobeys.com",
             "os_type":"windows or unix or AIX",
             "fileagent.enable": "N"
           }
-    1) Allowed config of fileagent.enable: "Y" or "y" or "N" or "n" only.
-    2) fileagent.enable: not allowed any other value apart "Y" or "y" or "N" or "n"
+    Allowed config of fileagent.enable: "Y" or "y" or "N" or "n" only.
     CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows
+3. Run this utility. It will updated the file agent status based on the configuration defined in the node_list.json. When running in "execute" mode, it will first take the backup of the existing configuration and then update the fileagent status (Parameter name: fileagent.enable).
+Note: It doesn't update any other parameters.
 
 **Installation Steps:**
 1.  Clone the repository
