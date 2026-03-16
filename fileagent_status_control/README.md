@@ -40,7 +40,7 @@ Note: It doesn't update any other parameters.
 **Installation Steps:**
 1.  Clone the repository
     ```bash
-    git clone <url>
+    git clone https://SobeysInc@dev.azure.com/SobeysInc/IntegrationPlatform/_git/CDFileAgentController
     
 2. Navigate to the Project Directory
     Open your command prompt or terminal and change to the project directory:

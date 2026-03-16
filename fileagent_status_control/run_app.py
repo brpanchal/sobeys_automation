@@ -3,7 +3,6 @@ import json
 import argparse
 import sys
 from dotenv import load_dotenv
-from collections import defaultdict
 from app.logger import logger
 from app.constants import *
 from app.fileagent_status_app import fileagent_status_service
@@ -23,16 +22,6 @@ def read_node_list_json():
         for node in node_list:
             seq_list.append([node])
         return seq_list
-        # buckets = defaultdict(list)
-        # for node in node_list:
-        #     os_type = node.get("os_type", "").lower()
-        #     if SYSTEMS[0] in os_type:
-        #         buckets[SYSTEMS[0]].append(node)
-        #     elif SYSTEMS[1] in os_type:
-        #         buckets[SYSTEMS[1]].append(node)
-        #     else:
-        #         buckets[SYSTEMS[2]].append(node)
-        # return [buckets[SYSTEMS[0]], buckets[SYSTEMS[2]], buckets[SYSTEMS[1]]]
     except Exception as e:
         raise Exception(f"Error reading nodes list json file: {e}")
 

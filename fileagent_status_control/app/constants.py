@@ -13,4 +13,4 @@ PREVIEW_ACTION = ["Skip", "Skipped"]
 EXECUTE_ACTION = ["Update", "Updated"]
 STATUS_MSG = ["Not mentioned", "Invalid value"]
 TABLE_HEADER = ["Sr. No.", "Node", "Hostname", "OS Type", "FileAgent Key", "Current FileAgent Status", "New FileAgent Status", "Action/Status"]
-TITLE = "Initparms fileAgent details for all nodes"
+TITLE = "FileAgent status details for all nodes"

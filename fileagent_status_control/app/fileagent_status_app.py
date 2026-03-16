@@ -190,11 +190,11 @@ def prepare_initparams_data(host_dict, data, flag, mode):
         data[0]['initParmsData'] = final_result
     else:
         if SYSTEMS[0] in host_dict['os_type'].lower():
-            current_value = data['File Agent']['fileagent.enable']
+            current_value = data['File Agent'][FILEAGENT_KEY]
             display_key = FILEAGENT_KEY
             flag_value = flag.upper() if isinstance(flag, str) else None
             updated_value = flag_value
-            data['File Agent']['fileagent.enable'] = flag_value
+            data['File Agent'][FILEAGENT_KEY] = flag_value
         else:
             current_value = data['cd.file.agent']['cdfa.enable']
             display_key = CDFA_KEY
@@ -333,7 +333,7 @@ def fileagent_status_service(node_list_json, args):
 
                     if args.execution_mode == 'preview':
                         result = get_initparam_details(args.env, True)
-                        _, action = prepare_initparams_data(host_dict, result, payload.get('fileagent.enable', None), args.execution_mode)
+                        _, action = prepare_initparams_data(host_dict, result, payload.get(FILEAGENT_KEY, None), args.execution_mode)
                         if action == PREVIEW_ACTION[0]:
                             skip+=1
                         else:
@@ -341,9 +341,9 @@ def fileagent_status_service(node_list_json, args):
                     else:
                         logger.debug(f"Updating CD FileAgent status for node: {host_dict['node']}")
                         result = get_initparam_details(args.env, False, True, host_dict['node'])
-                        modifiedinit, action = prepare_initparams_data(host_dict, result, payload.get('fileagent.enable', None), args.execution_mode)
+                        init_result, action = prepare_initparams_data(host_dict, result, payload.get(FILEAGENT_KEY, None), args.execution_mode)
                         if action == EXECUTE_ACTION[1]:
-                            status, res = update_initparam_details(modifiedinit, args.env)
+                            status, res = update_initparam_details(init_result, args.env)
                             if status:
                                 updated += 1
                                 logger.info(f"CD file agent status has been successfully updated for node: {host_dict['node']} and received response: {res}")
