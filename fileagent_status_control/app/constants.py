@@ -8,6 +8,7 @@ SYSTEMS = ["windows", "aix", "unix"]
 FILEAGENT_REGEX = r'(?i)(?P<prefix>\bfileagent\.enable\s*=\s*)(?P<val>[YN])\b'
 CDFA_REGEX = r'(?i)(?P<prefix>\bcdfa\.enable\s*=\s*)(?P<val>[yn])\b'
 FILEAGENT_KEY = "fileagent.enable"
+FILEAGENT_PREFIX = 'File Agent'
 CDFA_KEY = 'cd.file.agent:cdfa.enable'
 PREVIEW_ACTION = ["Skip", "Skipped"]
 EXECUTE_ACTION = ["Update", "Updated"]

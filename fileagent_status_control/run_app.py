@@ -9,14 +9,28 @@ from app.fileagent_status_app import fileagent_status_service
 
 load_dotenv()
 
-def read_file(file_name, path,  json_type=False):
+
+def read_file(file_name, path, json_type=False):
+    """
+        Read file and get the json or plain text data
+        :param file_name: file name
+        :param path: file path
+        :param json_type: json(True) or plain(False)
+        :return: json or plain text
+    """
     if file_name:
-        with open(path+os.getenv(file_name), 'r') as f:
+        with open(path + os.getenv(file_name), 'r') as f:
             return json.load(f) if json_type else f.read()
     return None
 
+
 def read_node_list_json():
+    """
+        Read node list json and append to sequence list
+        :return: sequence list
+    """
     try:
+        # Read file and get json data from file
         node_list = read_file(NODE_LIST_FILE, PARENT_DIR, True)
         seq_list = []
         for node in node_list:
@@ -25,9 +39,14 @@ def read_node_list_json():
     except Exception as e:
         raise Exception(f"Error reading nodes list json file: {e}")
 
+
 def input_parser():
+    """
+        Parse input arguments
+        :return: input parser
+    """
     parser = argparse.ArgumentParser(
-        description="Active Passive File Agent Status for node on CD on a given environment"
+        description="Enable Disable File Agent Status for node on CD on a given environment"
     )
 
     # Add arguments
@@ -45,17 +64,22 @@ def input_parser():
     args = parser.parse_args()
     return args
 
+
 def main():
+    """
+        Main function to start the execution when command line arguments are given with command
+    """
     args = input_parser()
     return_code = 0
     try:
-        logger.info(f"========== CD Enable Disable file agent status process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
+        logger.info(
+            f"========== CD Enable Disable file agent status process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
         node_list_json = read_node_list_json()
         logger.info("========== Loading required configuration completed =============")
         status = fileagent_status_service(node_list_json, args)
-        if status >0:
+        if status > 0:
             return_code = 1
     except Exception as e:
         logger.error(f"Unexpected exception found during execution: {str(e)}")
@@ -65,6 +89,7 @@ def main():
         logger.info(f"========== CD Enable Disable file agent status process completed ==========")
         logger.info(f"Exit code = {return_code}")
         sys.exit(return_code)
+
 
 if __name__ == '__main__':
     main()

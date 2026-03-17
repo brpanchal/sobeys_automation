@@ -16,6 +16,12 @@ Update Init Parms API is used to alter the current file agent status of a node o
 │ PUT      │/cdwebconsole/svc/initparms│ initParmsData  │ Yes      │ {"initParmsData":""}  │
 └──────────┴───────────────────────────┴────────────────┴──────────┴───────────────────────┘
 
+#Verification:
+verified this utility with below listed version and it is working as expected.
+    a) 6.3.0.11 (unix)
+    b) 6.2.0.7_iFix027 (unix)
+    c) 6.3.0.4_iFix009 (windows)
+
 # Project Setup and Usage Guide
 **Prerequisites**
 Before you begin, ensure you have the following installed:
