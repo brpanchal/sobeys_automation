@@ -4,14 +4,11 @@ import requests
 
 def mock_read_file(*args, **kwargs):
     #print("mock_cert", args, kwargs)
-    if args[0] in CERTIFICATES:
-        return kwargs.get("cert")
-    else:
-        return kwargs.get("node")
+    return kwargs.get("node")
 
 def mock_request(*args, **kwargs):
     #print("Mocked request", args, kwargs)
-    data = kwargs.get("cert") if kwargs.get("cert") else {}
+    data = kwargs.get("node") if kwargs.get("node") else {}
     fake_resp = MagicMock()
     fake_resp.status_code = 200
     fake_resp.json.return_value = data
@@ -19,8 +16,8 @@ def mock_request(*args, **kwargs):
     fake_resp.raise_for_status = MagicMock()  # <-- no exception
     return fake_resp
 
-def mock_cert_exception(*args, **kwargs):
-    print("mock_cert_exception")
+def mock_run_exception(*args, **kwargs):
+    print("mock_run_exception")
     raise Exception("Unexpected exception found during execution: boom")
 
 def mock_failed_request(*args, **kwargs):

@@ -4,34 +4,24 @@ from functools import partial
 import json
 from tests.constants import *
 from tests.helper import *
-from cert_app import *
-import  logging
+from run_app import *
+import logging
 
 
 logger = logging.getLogger(__name__)
 
-class TestCertApp(unittest.TestCase):
+class TestRunApp(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Load .env only once for the whole test class (faster, less noise)
         load_dotenv()
         cls.node_data = read_file(FILENAME, TEST_DATA_PATH, True)
-        cls.cert = cls.read_any_file(CERT_FILENAME)
-        with patch('cert_app.read_file', return_value=cls.cert):
-            cls.cert_data = read_certificates()
 
     def setUp(self):
         # Common fake args object
         self.fake_args = MagicMock()
         self.fake_args.env = "qa"
         self.fake_args.execution_mode = "preview"
-
-    @staticmethod
-    def read_any_file(file_name):
-        cond = os.path.splitext(file_name)[1] != ""
-        filename =  file_name if cond else f"{file_name}.json"
-        with open(os.path.join(TEST_DATA_PATH, filename), "r") as read_file:
-            return read_file.read() if cond else json.load(read_file)
 
     def test_read_file_without_file(self):
         res = read_file(None, None)
@@ -41,29 +31,15 @@ class TestCertApp(unittest.TestCase):
         if len(self.node_data) > 0:
             self.assertListEqual(list(self.node_data[0].keys()), NODE_LIST, "Not matched keys with data received from file")
 
-    def test_read_certificates(self):
-        with patch('cert_app.read_file', return_value=self.cert):
-            cert_list = read_certificates()
-            self.assertEqual(len(cert_list), 3, "Didn't get all 3 list of nodes based on os_type")
-            self.assertTrue(isinstance(cert_list, dict))
-            self.assertTrue(isinstance(cert_list['windows_cert'], str))
-
-    def test_read_certificates_exception(self):
-        with patch('cert_app.read_file') as rf:
-            rf.side_effect = partial(mock_cert_exception)
-            with self.assertRaises(Exception) as cm:
-                read_certificates()
-            self.assertIn('Error reading certificate file', str(cm.exception))
-
     def test_read_node_list_json_data(self):
-        with patch("cert_app.read_file", return_value=self.node_data):
+        with patch("run_app.read_file", return_value=self.node_data):
             node_list = read_node_list_json()
             self.assertTrue(isinstance(node_list[1], list))
             self.assertTrue(isinstance(node_list[1][0], dict))
             self.assertTrue(isinstance(node_list, list))
 
     def test_read_node_list_json_with_exception(self):
-        with patch("cert_app.read_file", return_value=None):
+        with patch("run_app.read_file", return_value=None):
             with self.assertRaises(Exception) as cm:
                 read_node_list_json()
 
@@ -93,15 +69,15 @@ class TestCertApp(unittest.TestCase):
             with patch("sys.argv", ["prog"]):
                 input_parser()
 
-    @patch("cert_app.run_cert_service")
-    @patch("cert_app.read_file")
-    @patch("cert_app.logger")
-    @patch("cert_app.input_parser")
+    @patch("run_app.fileagent_status_service")
+    @patch("run_app.read_file")
+    @patch("run_app.logger")
+    @patch("run_app.input_parser")
     def test_main_happy_path(self, mock_input_parser, mock_logger, read_file_data, mock_run_service):
         # Arrange
         mock_input_parser.return_value = self.fake_args
         mock_run_service.return_value = None
-        read_file_data.side_effect = partial(mock_read_file, node=self.node_data, cert=self.cert)
+        read_file_data.side_effect = partial(mock_read_file, node=self.node_data)
         main()
 
         # Assert
@@ -113,26 +89,23 @@ class TestCertApp(unittest.TestCase):
             "========== Loading required configuration completed ============="
         )
 
-        # Completion logs should be written in finally
-        mock_logger.info.assert_any_call("========== Certificate update completed ==========")
-
         # Ensure the start banner contains env and mode
         # (Use call_args_list to check formatted f-string without tightly coupling entire string)
-        start_log_calls = [c for c in mock_logger.info.call_args_list if "Certificate update started" in c.args[0]]
+        start_log_calls = [c for c in mock_logger.info.call_args_list if "Fileagent status update started" in c.args[0]]
         self.assertTrue(start_log_calls, "Start banner log not found")
         self.assertIn("Env=qa", start_log_calls[0].args[0])
         self.assertIn("Execution mode=preview", start_log_calls[0].args[0])
 
-    @patch("cert_app.run_cert_service", side_effect=RuntimeError("boom"))
-    @patch("cert_app.read_node_list_json", return_value={"nodes": []})
-    @patch("cert_app.logger")
-    @patch("cert_app.input_parser")
+    @patch("run_app.fileagent_status_service", side_effect=RuntimeError("boom"))
+    @patch("run_app.read_node_list_json", return_value={"nodes": []})
+    @patch("run_app.logger")
+    @patch("run_app.input_parser")
     def test_main_wraps_exceptions(self, mock_input_parser, mock_logger, mock_read_node_list_json, mock_run_service):
         # Arrange
         mock_input_parser.return_value = self.fake_args
         mock_run_service.side_effect = partial(mock_cert_exception)
         with self.assertRaises(Exception) as ctx:
-            with patch("cert_app.read_file", node=self.node_data, cert=self.cert):
+            with patch("run_app.read_file", node=self.node_data):
                 main()
 
         self.assertIn("Unexpected exception found during execution: boom", str(ctx.exception))
@@ -143,14 +116,14 @@ class TestCertApp(unittest.TestCase):
         # Ensure config load still happened before the crash in service
         mock_read_node_list_json.assert_called_once()
 
-    @patch("cert_app.run_cert_service", side_effect=ValueError("service error"))
-    @patch("cert_app.read_node_list_json", return_value={"nodes": ["x"]})
-    @patch("cert_app.logger")
-    @patch("cert_app.input_parser")
+    @patch("run_app.fileagent_status_service", side_effect=ValueError("service error"))
+    @patch("run_app.read_node_list_json", return_value={"nodes": ["x"]})
+    @patch("run_app.logger")
+    @patch("run_app.input_parser")
     def test_main_finally_always_runs(self, mock_input_parser, mock_logger, *_):
         # Arrange
         mock_input_parser.return_value = self.fake_args
-        with patch("cert_app.read_file", node=self.node_data, cert=self.cert):
+        with patch("run_app.read_file", node=self.node_data):
             with self.assertRaises(Exception):
                 main()
 

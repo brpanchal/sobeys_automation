@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from .logger import logger, timestamp
 from .constants import *
 import re
+from enum import StrEnum
+import html
 
 load_dotenv()
 token = None
@@ -16,7 +18,19 @@ csrf = None
 report_list = []
 session = requests.Session()
 
-def sign_on(endpoint, env, host_dict):
+class Systems(StrEnum):
+    WINDOWS = "windows"
+    UNIX = "unix"
+
+class FileAgentStatusEnum(StrEnum):
+    PREVIEW = "preview"
+    SKIP = "Skip"
+    SKIPPED = "Skipped"
+    UPDATE = "Update"
+    UPDATED = "Updated"
+
+
+def sign_on(endpoint, env, host_dict) -> Systems:
     """
         This is to sign on CD server with given env and node details
         :param endpoint: endpoint uri
@@ -30,7 +44,7 @@ def sign_on(endpoint, env, host_dict):
     url = f"{base_url}{endpoint}"
 
     #If os_type windows then prepare auth data with cred.., port
-    if SYSTEMS[0] in host_dict['os_type'].lower():
+    if Systems.WINDOWS in host_dict[OS_TYPE].lower():
         credentials = f"{os.getenv(f"{env}_CD_WIN_USER")}:{os.getenv(f"{env}_CD_WIN_PASSWORD")}"
         encoded_bytes = base64.b64encode(credentials.encode("utf-8"))
         encoded_str = encoded_bytes.decode("utf-8")
@@ -52,7 +66,7 @@ def sign_on(endpoint, env, host_dict):
                }
 
     #required payload
-    payload = {'ipAddress': host_dict['hostname'],
+    payload = {'ipAddress': host_dict[HOSTNAME],
                'port': port,
                'protocol': os.getenv("PROTOCOL"),
                }
@@ -194,11 +208,26 @@ def update_initparam_details(payload, env):
     """
         This is to decoded payload data with utf-8 and send the formatted payload to API server
     """
-    payload = payload[0]["initParmsData"]
+    raw = payload[0][INITPARMSDATA]
 
     #decoded the payload data with safe unicode
-    decoded_text = payload.encode("utf-8").decode("unicode_escape")
-    return send_request("PUT", os.getenv("CDWS_INITPARAM"), env, {"initParmsData": decoded_text})
+    #decoded_text = payload.encode("utf-8").decode("unicode_escape")
+    if isinstance(raw, str) and len(raw) >= 2 and raw[0] == '"' and raw[-1] == '"':
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            # If not valid JSON, just fall back to the original text
+            pass
+
+    # 3) Unescape HTML entities like &lt;None&gt;
+    decoded_text = html.unescape(raw)
+
+    # 4) Build the outgoing payload.
+    #    If the receiving API expects plain text, send as-is.
+    #    If it expects JSON, let json library escape as needed.
+    outgoing_payload = {INITPARMSDATA: decoded_text}
+
+    return send_request("PUT", os.getenv("CDWS_INITPARAM"), env, outgoing_payload)
 
 
 def get_payload(payload):
@@ -206,11 +235,11 @@ def get_payload(payload):
         This is to filter out node data separately long with payload data
     """
     #Separating node data like node name. hostname, os_type
-    node = payload.pop("node", None)
-    hostname = payload.pop("hostname", None)
-    os_type = payload.pop("os_type", None)
+    node = payload.pop(NODE, None)
+    hostname = payload.pop(HOSTNAME, None)
+    os_type = payload.pop(OS_TYPE, None)
 
-    return payload, {'node': node, 'hostname': hostname, 'os_type': os_type}
+    return payload, {NODE: node, HOSTNAME: hostname, OS_TYPE: os_type}
 
 
 def ensure_sign_out(env):
@@ -223,7 +252,7 @@ def ensure_sign_out(env):
         logger.debug(f"Unexpected exception found during execution: {str(e1)}")
 
 
-def prepare_initparams_data(host_dict, data, flag, mode):
+def prepare_initparams_data(host_dict, data, status, mode) -> Systems:
     """
         Prepare init parameter data for a node by computing the current FileAgent status,
         deriving the desired value from `flag` based on OS type, and determining the action
@@ -241,10 +270,10 @@ def prepare_initparams_data(host_dict, data, flag, mode):
             - list: with the first element containing a key 'initParmsData' (str) for raw text
             - dict: JSON-like structure containing FILEAGENT_PREFIX/FILEAGENT_KEY for Unix or
                     keys from CDFA_KEY (split by ':') for Windows
-        flag : str|None
+        status : str|None
             Desired fileagent status value to set. Will be normalized based on OS:
-            - Unix: upper ('Y'/'N')
-            - Windows: lower ('y'/'n')
+            - Windows: upper ('Y'/'N')
+            - Unix: lower ('y'/'n')
             If None, treated as "not mentioned".
         mode : str
             Execution mode, typically 'preview' or 'execute'. Passed to `perform_action`
@@ -252,58 +281,58 @@ def prepare_initparams_data(host_dict, data, flag, mode):
     """
     global report_list
     if isinstance(data, list):
-        initparamsdata = data[0]['initParmsData']
+        initparamsdata = data[0][INITPARMSDATA]
 
         # Regex for unix and windows fileagent status search
         PATTERN_FILEAGENT = re.compile(FILEAGENT_REGEX)
         PATTERN_CDFA = re.compile(CDFA_REGEX)
 
         # If os_type is windows then preparing pattern, requested flag and get status of fileagent.enable parameter
-        if SYSTEMS[0] in host_dict['os_type'].lower():
+        if Systems.WINDOWS in host_dict[OS_TYPE].lower():
             pattern = PATTERN_FILEAGENT
             display_key = FILEAGENT_KEY
-            updated_value = flag.upper() if isinstance(flag, str) else None
+            new_status_value = status.upper() if isinstance(status, str) else None
         else:
             # If os_type is unix or anyother then preparing pattern, requested flag and get status of cdfa.enable parameter
             pattern = PATTERN_CDFA
             display_key = CDFA_KEY
-            updated_value = flag.lower() if isinstance(flag, str) else None
+            new_status_value = status.lower() if isinstance(status, str) else None
 
         # Searching the defined fileagent parameter based on os_type
         m = re.search(pattern, initparamsdata)
-        current_value = None
+        current_status_value = None
         if m:
-            current_value = m.group('val')
-        final_result = pattern.sub(lambda m: m.group("prefix") + updated_value if updated_value else "", initparamsdata)
-        data[0]['initParmsData'] = final_result
+            current_status_value = m.group('val')
+        final_result = pattern.sub(lambda m: m.group("prefix") + new_status_value if new_status_value else "", initparamsdata)
+        data[0][INITPARMSDATA] = final_result
     else:
         # As preview mode If os_type is windows then preparing data with pattern, requested flag and get status of fileagent.enable parameter
-        if SYSTEMS[0] in host_dict['os_type'].lower():
-            current_value = data[FILEAGENT_PREFIX][FILEAGENT_KEY]
+        if Systems.WINDOWS in host_dict[OS_TYPE].lower():
+            current_status_value = data[FILEAGENT_PREFIX][FILEAGENT_KEY]
             display_key = FILEAGENT_KEY
-            flag_value = flag.upper() if isinstance(flag, str) else None
-            updated_value = flag_value
-            data[FILEAGENT_PREFIX][FILEAGENT_KEY] = flag_value
+            status_value = status.upper() if isinstance(status, str) else None
+            new_status_value = status_value
+            data[FILEAGENT_PREFIX][FILEAGENT_KEY] = status_value
         else:
             # If os_type is unix or any other then preparing data with pattern, requested flag and get status of cdfa.enable parameter
             fa_flag = CDFA_KEY.split(":")
-            current_value = data[fa_flag[0]][fa_flag[1]]
+            current_status_value = data[fa_flag[0]][fa_flag[1]]
             display_key = CDFA_KEY
-            flag_value = flag.lower() if isinstance(flag, str) else None
-            updated_value = flag_value
-            data[fa_flag[0]][fa_flag[1]] = flag_value
+            status_value = status.lower() if isinstance(status, str) else None
+            new_status_value = status_value
+            data[fa_flag[0]][fa_flag[1]] = status_value
 
     # Based on current and request fileagent.enable value it determines the action to be performed.
-    action, newval = perform_action(current_value, updated_value, mode)
+    action, newval = perform_action(current_status_value, new_status_value, mode)
 
     #Appending row data of node in global report_list to display in table format
     report_list.append(
-        ["1", host_dict['node'], host_dict['hostname'], host_dict['os_type'], display_key, current_value, newval,
+        ["", host_dict[NODE], host_dict[HOSTNAME], host_dict[OS_TYPE], display_key, current_status_value, newval,
          action])
     return data, action
 
 
-def perform_action(current, newval, mode):
+def perform_action(current, newval, mode) -> FileAgentStatusEnum:
     """
     Based on execution mode, returning action as skip, update and message
         If no fileagent.enable not defined in node_list.json then returns 'Skip', 'Not Mentioned'
@@ -313,19 +342,19 @@ def perform_action(current, newval, mode):
     """
     if newval is None:
         #`fileagent.enable` is NOT provided in `node_list.json`returns Skip, message = 'Not Mentioned'
-        return PREVIEW_ACTION[0] if mode == "preview" else PREVIEW_ACTION[1], STATUS_MSG[0]
-    elif newval.lower() not in ['y', 'n']:
+        return FileAgentStatusEnum.SKIP if mode == FileAgentStatusEnum.PREVIEW else FileAgentStatusEnum.SKIPPED, STATUS_MSG[0]
+    elif newval.lower() not in STATUS_LIST:
         #`fileagent.enable` is provided but invalid (not 'y'/'n' case-insensitive)
         # returns Skip, message = 'Invalid value'
-        return PREVIEW_ACTION[0] if mode == "preview" else PREVIEW_ACTION[1], STATUS_MSG[1]
+        return FileAgentStatusEnum.SKIP if mode == FileAgentStatusEnum.PREVIEW else FileAgentStatusEnum.SKIPPED, STATUS_MSG[1]
     elif current == newval:
         #current status equals desired status (case-insensitive match)
         # returns Skip, requested value
-        return PREVIEW_ACTION[0] if mode == "preview" else PREVIEW_ACTION[1], newval
+        return FileAgentStatusEnum.SKIP if mode == FileAgentStatusEnum.PREVIEW else FileAgentStatusEnum.SKIPPED, newval
     else:
         #Otherwise (a change is required)
         # returns Update, requested value
-        return EXECUTE_ACTION[0] if mode == "preview" else EXECUTE_ACTION[1], newval
+        return FileAgentStatusEnum.UPDATE if mode == FileAgentStatusEnum.PREVIEW else FileAgentStatusEnum.UPDATED, newval
 
 
 def format_tree_report(rows) -> str:
@@ -423,14 +452,14 @@ def prerequisite_to_process_node(node):
     """
         Validate the prerequisite node based on availability
     """
-    hostname = node.get("hostname", "")
-    os_type = node.get("os_type", "")
+    hostname = node.get(HOSTNAME, "")
+    os_type = node.get(OS_TYPE, "")
     if not (os_type and hostname):
         raise Exception(
-            f"node_list not configured properly. either hostname or os_type not found or invalid values for node:{node.get('node')}.")
+            f"node_list not configured properly. either hostname or os_type not found or invalid values for node:{node.get(NODE)}.")
 
 
-def generate_report(mode, success, failed, skipped, updated, skip, update, total_time):
+def generate_report(mode, success, failed, skipped, updated, skip, update, total_time) -> FileAgentStatusEnum:
     """
         Generate a consolidated execution report for FileAgent status processing.
 
@@ -478,7 +507,7 @@ def generate_report(mode, success, failed, skipped, updated, skip, update, total
     # Log hierarchical table format report generated during processing
     logger.info(format_tree_report(report_list))
     # Display mode-based summary
-    if mode == 'preview':
+    if mode == FileAgentStatusEnum.PREVIEW:
         logger.info(
             f"Success: {success}  Failed: {failed}  Skip:{skip}   Update:{update}")
     else:
@@ -487,7 +516,7 @@ def generate_report(mode, success, failed, skipped, updated, skip, update, total
     logger.info("ℹ️ CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows")
 
 
-def fileagent_status_service(node_list_json, args):
+def fileagent_status_service(node_list_json, args) -> FileAgentStatusEnum:
     """
         Orchestrates preview/update of CD FileAgent status across a list of nodes.
 
@@ -521,7 +550,7 @@ def fileagent_status_service(node_list_json, args):
         for node_list in node_list_json:
             for node in node_list:
                 try:
-                    logger.info(f"========== Processing started for node {node['node']} =============")
+                    logger.info(f"========== Processing started for node {node[NODE]} =============")
                     # Validate node is ready for processing
                     prerequisite_to_process_node(node)
                     # Construct required payload and normalized host metadata for downstream calls
@@ -529,39 +558,39 @@ def fileagent_status_service(node_list_json, args):
                     # Establish a session in the target environment
                     ensure_signed_on(args.env, host_dict)
 
-                    if args.execution_mode == 'preview':
+                    if args.execution_mode == FileAgentStatusEnum.PREVIEW:
                         # PREVIEW: Only compute the action; do NOT perform updates
                         result = get_initparam_details(args.env, True)
                         _, action = prepare_initparams_data(host_dict, result, payload.get(FILEAGENT_KEY, None),
                                                             args.execution_mode)
                         # Count preview decision outcomes # e.g., "Skip" "Update"
-                        if action == PREVIEW_ACTION[0]:
+                        if action == FileAgentStatusEnum.SKIP:
                             skip += 1
                         else:
                             update += 1
                     else:
                         # EXECUTION: Fetch current state for the specific node, compute action, and apply if needed
-                        logger.debug(f"Updating CD FileAgent status for node: {host_dict['node']}")
-                        result = get_initparam_details(args.env, False, True, host_dict['node'])
+                        logger.debug(f"Updating CD FileAgent status for node: {host_dict[NODE]}")
+                        result = get_initparam_details(args.env, False, True, host_dict[NODE])
                         init_result, action = prepare_initparams_data(host_dict, result,
                                                                       payload.get(FILEAGENT_KEY, None),
                                                                       args.execution_mode)
                         # Perform update only when action denotes "Skipped/Updated"
-                        if action == EXECUTE_ACTION[1]:
+                        if action == FileAgentStatusEnum.UPDATED:
                             status, res = update_initparam_details(init_result, args.env)
                             if status:
                                 updated += 1
                                 logger.info(
-                                    f"CD file agent status has been successfully updated for node: {host_dict['node']} and received response: {res}")
+                                    f"CD file agent status has been successfully updated for node: {host_dict[NODE]} and received response: {res}")
                             else:
                                 logger.info(
-                                    f"CD file agent status has been failed for node: {host_dict['node']} and received response: {res}")
+                                    f"CD file agent status has been failed for node: {host_dict[NODE]} and received response: {res}")
                         else:
                             # No change necessary or config incorrect; record as skipped
                             skipped += 1
                             logger.info(
                                 "Current status matches the requested status or incorrect configured; skipping the update.")
-                    logger.info(f"========== Processing completed for node {host_dict['node']} =============")
+                    logger.info(f"========== Processing completed for node {host_dict[NODE]} =============")
                     success += 1
                 except Exception as e:
                     # Node-level exceptions are logged; processing continues for subsequent nodes

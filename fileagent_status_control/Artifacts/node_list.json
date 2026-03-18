@@ -1,20 +1,14 @@
 [
-  {
-	"node": "SAPRMSS4",
-	"hostname": "c1-s4dsap-d.sobeys.com",
-    "os_type": "unix",
-    "fileagent.enable": "n"
-  },
-  {
-    "node": "DMNAT01",
-    "hostname": "10.155.114.43",
-    "os_type":"windows",
-    "fileagent.enable": "y"
-  },
-  {
-	"node": "SAPRMSS41",
-	"hostname": "c1-s4dsap-d.sobeys.com",
-    "os_type": "unix"
-  }
-
+    {
+        "node": "SAPRMSS4",
+        "hostname": "c1-s4dsap-d.sobeys.com",
+        "os_type": "unix",
+        "fileagent.enable": "y"
+    },
+    {
+        "node": "DMNAT01",
+        "hostname": "10.155.114.43",
+        "os_type": "windows",
+        "fileagent.enable": "Y"
+    }
 ]
