@@ -73,12 +73,15 @@ class TestRunApp(unittest.TestCase):
     @patch("run_app.read_file")
     @patch("run_app.logger")
     @patch("run_app.input_parser")
-    def test_main_happy_path(self, mock_input_parser, mock_logger, read_file_data, mock_run_service):
+    def test_main_function_success(self, mock_input_parser, mock_logger, read_file_data, mock_run_service):
         # Arrange
         mock_input_parser.return_value = self.fake_args
-        mock_run_service.return_value = None
+        mock_run_service.return_value = 0
         read_file_data.side_effect = partial(mock_read_file, node=self.node_data)
-        main()
+
+        with patch("sys.exit") as mock_exit:
+            main()
+            mock_exit.assert_called_once_with(0)
 
         # Assert
         mock_input_parser.assert_called_once()
@@ -89,12 +92,43 @@ class TestRunApp(unittest.TestCase):
             "========== Loading required configuration completed ============="
         )
 
+        mock_logger.info.assert_any_call(
+            "========== CD Enable Disable file agent status process completed =========="
+        )
+
         # Ensure the start banner contains env and mode
         # (Use call_args_list to check formatted f-string without tightly coupling entire string)
-        start_log_calls = [c for c in mock_logger.info.call_args_list if "Fileagent status update started" in c.args[0]]
+        start_log_calls = [c for c in mock_logger.info.call_args_list if "CD Enable Disable file agent status process started" in c.args[0]]
         self.assertTrue(start_log_calls, "Start banner log not found")
         self.assertIn("Env=qa", start_log_calls[0].args[0])
         self.assertIn("Execution mode=preview", start_log_calls[0].args[0])
+
+    @patch("run_app.fileagent_status_service")
+    @patch("run_app.read_file")
+    @patch("run_app.logger")
+    @patch("run_app.input_parser")
+    def test_main_function_failed(self, mock_input_parser, mock_logger, read_file_data, mock_run_service):
+        # Arrange
+        mock_input_parser.return_value = self.fake_args
+        mock_run_service.return_value = 2
+        read_file_data.side_effect = partial(mock_read_file, node=self.node_data)
+
+        with patch("sys.exit") as mock_exit:
+            main()
+            mock_exit.assert_called_once_with(1)
+
+        # Assert
+        mock_input_parser.assert_called_once()
+        mock_logger.info.assert_any_call(
+            "========== Loading required configuration started ============="
+        )
+        mock_logger.info.assert_any_call(
+            "========== Loading required configuration completed ============="
+        )
+
+        mock_logger.info.assert_any_call(
+            "========== CD Enable Disable file agent status process completed =========="
+        )
 
     @patch("run_app.fileagent_status_service", side_effect=RuntimeError("boom"))
     @patch("run_app.read_node_list_json", return_value={"nodes": []})
@@ -103,15 +137,16 @@ class TestRunApp(unittest.TestCase):
     def test_main_wraps_exceptions(self, mock_input_parser, mock_logger, mock_read_node_list_json, mock_run_service):
         # Arrange
         mock_input_parser.return_value = self.fake_args
-        mock_run_service.side_effect = partial(mock_cert_exception)
+        mock_run_service.side_effect = partial(mock_run_exception)
         with self.assertRaises(Exception) as ctx:
             with patch("run_app.read_file", node=self.node_data):
-                main()
+                with patch("sys.exit") as mock_exit:
+                    main()
 
         self.assertIn("Unexpected exception found during execution: boom", str(ctx.exception))
 
         # Finally block should still log completion banners
-        mock_logger.info.assert_any_call("========== Certificate update completed ==========")
+        mock_logger.info.assert_any_call("========== CD Enable Disable file agent status process completed ==========")
 
         # Ensure config load still happened before the crash in service
         mock_read_node_list_json.assert_called_once()
@@ -125,10 +160,11 @@ class TestRunApp(unittest.TestCase):
         mock_input_parser.return_value = self.fake_args
         with patch("run_app.read_file", node=self.node_data):
             with self.assertRaises(Exception):
-                main()
+                with patch("sys.exit") as mock_exit:
+                    main()
 
         # Assert that completion logs were emitted despite exception
-        mock_logger.info.assert_any_call("========== Certificate update completed ==========")
+        mock_logger.info.assert_any_call("========== CD Enable Disable file agent status process completed ==========")
 
 
 
