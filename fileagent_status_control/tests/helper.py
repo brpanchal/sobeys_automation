@@ -6,13 +6,14 @@ def mock_read_file(*args, **kwargs):
     #print("mock_cert", args, kwargs)
     return kwargs.get("node")
 
-def mock_request(*args, **kwargs):
+def mock_func_request(*args, **kwargs):
     #print("Mocked request", args, kwargs)
     data = kwargs.get("node") if kwargs.get("node") else {}
     fake_resp = MagicMock()
     fake_resp.status_code = 200
     fake_resp.json.return_value = data
     fake_resp.text = str(data)
+    fake_resp.status = True
     fake_resp.raise_for_status = MagicMock()  # <-- no exception
     return fake_resp
 

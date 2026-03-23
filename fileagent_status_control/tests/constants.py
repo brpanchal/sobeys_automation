@@ -5,6 +5,7 @@ EXECUTION_MODE = "preview"
 BASE_URL = "http://dummy.com:8080"
 TEST_DATA_PATH = "tests/testdata/"
 FILENAME = 'NODE_LIST_FILE'
+INITFILENAME = 'INIT_FILENAME'
 FILEPATH = './Artifacts/'
 NODE_LIST = ["node", "hostname", "os_type", 'fileagent.enable']
 FILE_ERROR= "Error reading nodes list json file"
@@ -45,6 +46,7 @@ NO_ARTIFACTS = '— No Artifacts —'
 ERROR_400_MSG = "400 Client Error: Not Found"
 ERROR_404_MSG ="404 Client Error: Not Found"
 ERROR_500_MSG="500 Server error exception raised"
+RESPONSE_DATA = {"INITPARMS": [{"messageCode": 200,"message": "Init Parms data has been updated successfully"}]}
 
 
 
