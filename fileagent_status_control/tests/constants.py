@@ -16,6 +16,7 @@ HOST_DICT_1 = { "node": "Dummy1", "hostname": "dummy1.com", "os_type": "unix sys
 HOST_DICT_2 = { "node": "Dummy2", "hostname": "dummy2.com", "os_type": "windows system" }
 HOST_DICT_3 = { "node": "Dummy3", "hostname": "dummy3.com", "os_type": "aix system" }
 EXPECTED_PAYLOAD = 'y'
+EXPECTED_PAYLOAD_N = 'n'
 PAYLOAD_EXCEPTION = "pop expected at most 1 argument, got 2"
 START_BACKUP_EXPECTED= 'Started backup of initparams details for node Sample'
 START_BACKUP_LOG_MSG = "Start backup log line not found in logs"

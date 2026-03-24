@@ -15,7 +15,10 @@ class TestFileAgentStatusApp(unittest.TestCase):
     def setUpClass(cls):
         # Load .env only once for the whole test class (faster, less noise)
         load_dotenv()
-        cls.test_data = read_file(FILENAME, TEST_DATA_PATH, True)
+        data = read_file(FILENAME, TEST_DATA_PATH, True)
+        cls.test_data = []
+        for node in data:
+            cls.test_data.append([node])
         cls.init_data = read_file(INITFILENAME, TEST_DATA_PATH, True)
 
     def setUp(self):
@@ -36,7 +39,7 @@ class TestFileAgentStatusApp(unittest.TestCase):
             mq.side_effect = partial(mock_func_request)
 
             with self.assertLogs(level='DEBUG') as cml:
-                ensure_signed_on(self.fake_args.env, self.test_data[0])
+                ensure_signed_on(self.fake_args.env, self.test_data[0][0])
                 ensure_sign_out(self.fake_args.env)
             self.assertTrue(any(CD_SIGN_ON in line for line in cml.output), CD_SIGN_ON_MSG,)
 
@@ -45,28 +48,28 @@ class TestFileAgentStatusApp(unittest.TestCase):
             mq.side_effect = partial(mock_func_request)
 
             with self.assertLogs(level='DEBUG') as cm:
-                ensure_signed_on(self.fake_args.env, self.test_data[1])
+                ensure_signed_on(self.fake_args.env, self.test_data[1][0])
                 ensure_sign_out(self.fake_args.env)
             self.assertTrue(any(CD_SIGN_ON in line for line in cm.output), CD_SIGN_ON_MSG,)
 
     def test_get_payload(self):
         testdata = copy.deepcopy(self.test_data)
-        payload, host_dict = get_payload(testdata[1])
+        payload, host_dict = get_payload(testdata[1][0])
         self.assertEqual(payload["fileagent.enable"], EXPECTED_PAYLOAD)
         self.assertEqual(host_dict, HOST_DICT_2)
 
         testdata_1 = copy.deepcopy(self.test_data)
-        testdata_1[1].update({'test':"dummy"})
-        payload, host_dict = get_payload(testdata_1[1])
+        testdata_1[1][0].update({'test':"dummy"})
+        payload, host_dict = get_payload(testdata_1[1][0])
         self.assertIn('test', payload)
         self.assertEqual(host_dict, HOST_DICT_2)
 
-        payload, host_dict = get_payload(testdata_1[0])
+        payload, host_dict = get_payload(testdata_1[0][0])
         self.assertEqual(payload['fileagent.enable'], EXPECTED_PAYLOAD)
         self.assertEqual(host_dict, HOST_DICT_1)
 
-        payload, host_dict = get_payload(testdata_1[2])
-        self.assertEqual(payload['fileagent.enable'], EXPECTED_PAYLOAD)
+        payload, host_dict = get_payload(testdata_1[2][0])
+        self.assertEqual(payload['fileagent.enable'], EXPECTED_PAYLOAD_N)
         self.assertEqual(host_dict, HOST_DICT_3)
 
         with self.assertRaises(Exception) as cm:
@@ -138,7 +141,7 @@ class TestFileAgentStatusApp(unittest.TestCase):
 
     def test_sign_on_exception(self):
         testdata = copy.deepcopy(self.test_data)
-        _, host_dict = get_payload(testdata[1])
+        _, host_dict = get_payload(testdata[1][0])
         with patch("requests.Session.request") as mq:
             mq.side_effect = partial(mock_excep_request, param='HTTPError')
             with self.assertRaises(Exception) as ctx:
@@ -195,36 +198,41 @@ class TestFileAgentStatusApp(unittest.TestCase):
         self.assertEqual(res.status, True)
 
     def test_prepare_initparams_data_with_execute(self):
-        result, action = prepare_initparams_data(self.test_data[0], self.init_data[0], "Y", self.fake_args.execution_mode)
+        testdata = copy.deepcopy(self.test_data)
+        self.fake_args.execution_mode = 'execute'
+        result, action = prepare_initparams_data(testdata[0][0], self.init_data[0], "n", self.fake_args.execution_mode)
         self.assertEqual(result, self.init_data[0])
-        self.assertEqual(action, FileAgentStatusEnum.UPDATE)
+        self.assertEqual(action, FileAgentStatusEnum.SKIPPED)
 
-        result, action = prepare_initparams_data(self.test_data[1], self.init_data[0], "Y", self.fake_args.execution_mode)
-        self.assertEqual(result, self.init_data[0])
-        self.assertEqual(action, FileAgentStatusEnum.UPDATE)
+        result, action = prepare_initparams_data(testdata[1][0], self.init_data[3], "N", self.fake_args.execution_mode)
+        self.assertEqual(result, self.init_data[3])
+        self.assertEqual(action, FileAgentStatusEnum.UPDATED)
 
-        result, action = prepare_initparams_data(self.test_data[1], self.init_data[0], "abc",
+        result, action = prepare_initparams_data(testdata[1][0], self.init_data[0], "abc",
                                                  self.fake_args.execution_mode)
         self.assertEqual(result, self.init_data[0])
-        self.assertEqual(action, FileAgentStatusEnum.SKIP)
+        self.assertEqual(action, FileAgentStatusEnum.SKIPPED)
+        self.fake_args.execution_mode = EXECUTION_MODE
 
     def test_prepare_initparams_data_with_preview(self):
-        result, action = prepare_initparams_data(self.test_data[0], self.init_data[1], "Y", self.fake_args.execution_mode)
+        testdata = copy.deepcopy(self.test_data)
+        result, action = prepare_initparams_data(testdata[0][0], self.init_data[1], "y", self.fake_args.execution_mode)
         self.assertEqual(result, self.init_data[1])
         self.assertEqual(action, FileAgentStatusEnum.SKIP)
 
-        result, action = prepare_initparams_data(self.test_data[1], self.init_data[2], "Y", self.fake_args.execution_mode)
+        result, action = prepare_initparams_data(testdata[1][0], self.init_data[2], "Y", self.fake_args.execution_mode)
         self.assertEqual(result, self.init_data[2])
         self.assertEqual(action, FileAgentStatusEnum.SKIP)
 
-        result, action = prepare_initparams_data(self.test_data[1], self.init_data[2], None,
+        result, action = prepare_initparams_data(testdata[1][0], self.init_data[2], None,
                                                  self.fake_args.execution_mode)
         self.assertEqual(result, self.init_data[2])
         self.assertEqual(action, FileAgentStatusEnum.SKIP)
 
     def test_format_tree_report(self):
         global report_list
-        result, action = prepare_initparams_data(self.test_data[0], self.init_data[1], "Y",
+        testdata = copy.deepcopy(self.test_data)
+        result, action = prepare_initparams_data(testdata[0][0], self.init_data[1], "Y",
                                                  self.fake_args.execution_mode)
         self.assertEqual(result, self.init_data[1])
         self.assertEqual(action, FileAgentStatusEnum.SKIP)
@@ -267,7 +275,66 @@ class TestFileAgentStatusApp(unittest.TestCase):
             'ℹ️ CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows' in line for line in cml.output),
                         'not found', )
 
+    def test_fileagent_status_service_preview(self):
+        testdata = copy.deepcopy(self.test_data)
+        with patch("requests.Session.request") as mock_func:
+            with patch("app.fileagent_status_app.send_request") as send_req:
+                mock_func.side_effect = partial(mock_func_request, node=[testdata[0]])
+                send_req.return_value = True, self.init_data[1]
+                with self.assertLogs(level='INFO') as cml:
+                    failed_count = fileagent_status_service([testdata[0]], self.fake_args)
+                self.assertEqual(failed_count, 0)
+                self.assertTrue(any('Processing started for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('Processing completed for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
 
+        with patch("requests.Session.request") as mock_func:
+            with patch("app.fileagent_status_app.send_request") as send_req:
+                mock_func.side_effect = partial(mock_func_request, node=[testdata[1]])
+                send_req.return_value = True, self.init_data[2]
+                with self.assertLogs(level='INFO') as cml:
+                    failed_count = fileagent_status_service([testdata[1]], self.fake_args)
+                self.assertEqual(failed_count, 0)
+                self.assertTrue(any('Processing started for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('Processing completed for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
 
+        with patch("requests.Session.request") as mock_func:
+            with patch("app.fileagent_status_app.send_request") as send_req:
+                mock_func.side_effect = partial(mock_func_request, node=[testdata[0]])
+                send_req.return_value = True, self.init_data[2]
+                with self.assertLogs(level='INFO') as cml:
+                    failed_count = fileagent_status_service([testdata[0]], self.fake_args)
+                self.assertEqual(failed_count, 1)
+                #self.assertTrue(any('Processing started for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('Processing failed for CD FileAgent due to' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
 
+    def test_fileagent_status_service_execute(self):
+        testdata = copy.deepcopy(self.test_data)
+        self.fake_args.execution_mode = 'execute'
+        with patch("requests.Session.request") as mock_func:
+            with patch("app.fileagent_status_app.send_request") as send_req:
+                mock_func.side_effect = partial(mock_func_request, node=[testdata[0]])
+                send_req.return_value = True, self.init_data[0]
+                with self.assertLogs(level='INFO') as cml:
+                    failed_count = fileagent_status_service([testdata[0]], self.fake_args)
 
+                self.assertEqual(failed_count, 0)
+                self.assertTrue(any('Current status matches the requested status or incorrect configured; skipping the update.' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('Processing completed for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
+
+        with patch("requests.Session.request") as mock_func:
+            with patch("app.fileagent_status_app.send_request") as send_req:
+                mock_func.side_effect = partial(mock_func_request, node=[testdata[2]])
+                send_req.return_value = True, self.init_data[0]
+                with self.assertLogs(level='INFO') as cml:
+                    failed_count = fileagent_status_service([testdata[2]], self.fake_args)
+
+                self.assertEqual(failed_count, 0)
+                #self.assertTrue(any('Updating CD FileAgent status for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('Processing completed for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
+
+        self.fake_args.execution_mode = EXECUTION_MODE

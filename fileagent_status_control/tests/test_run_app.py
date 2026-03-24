@@ -15,7 +15,10 @@ class TestRunApp(unittest.TestCase):
     def setUpClass(cls):
         # Load .env only once for the whole test class (faster, less noise)
         load_dotenv()
-        cls.node_data = read_file(FILENAME, TEST_DATA_PATH, True)
+        cls.data = read_file(FILENAME, TEST_DATA_PATH, True)
+        cls.node_data = []
+        for node in cls.data:
+            cls.node_data.append([node])
 
     def setUp(self):
         # Common fake args object
@@ -29,10 +32,10 @@ class TestRunApp(unittest.TestCase):
 
     def test_read_file_with_filedata(self):
         if len(self.node_data) > 0:
-            self.assertListEqual(list(self.node_data[0].keys()), NODE_LIST, "Not matched keys with data received from file")
+            self.assertListEqual(list(self.node_data[0][0].keys()), NODE_LIST, "Not matched keys with data received from file")
 
     def test_read_node_list_json_data(self):
-        with patch("run_app.read_file", return_value=self.node_data):
+        with patch("run_app.read_file", return_value=self.data):
             node_list = read_node_list_json()
             self.assertTrue(isinstance(node_list[1], list))
             self.assertTrue(isinstance(node_list[1][0], dict))
