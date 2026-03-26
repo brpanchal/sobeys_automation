@@ -19,7 +19,7 @@ class TestFileAgentStatusApp(unittest.TestCase):
         cls.test_data = []
         for node in data:
             cls.test_data.append([node])
-        cls.init_data = read_file(INITFILENAME, TEST_DATA_PATH, True)
+        cls.init_data = read_json_file(INITFILENAME, TEST_DATA_PATH, True)
 
     def setUp(self):
         # Common fake args object
@@ -200,12 +200,12 @@ class TestFileAgentStatusApp(unittest.TestCase):
     def test_prepare_initparams_data_with_execute(self):
         testdata = copy.deepcopy(self.test_data)
         self.fake_args.execution_mode = 'execute'
-        result, action = prepare_initparams_data(testdata[0][0], self.init_data[0], "n", self.fake_args.execution_mode)
+        result, action = prepare_initparams_data(testdata[0][0], self.init_data[0], "y", self.fake_args.execution_mode)
         self.assertEqual(result, self.init_data[0])
         self.assertEqual(action, FileAgentStatusEnum.SKIPPED)
 
-        result, action = prepare_initparams_data(testdata[1][0], self.init_data[3], "N", self.fake_args.execution_mode)
-        self.assertEqual(result, self.init_data[3])
+        result, action = prepare_initparams_data(testdata[1][0], self.init_data[4], "N", self.fake_args.execution_mode)
+        self.assertEqual(result, self.init_data[4])
         self.assertEqual(action, FileAgentStatusEnum.UPDATED)
 
         result, action = prepare_initparams_data(testdata[1][0], self.init_data[0], "abc",
@@ -276,6 +276,12 @@ class TestFileAgentStatusApp(unittest.TestCase):
                         'not found', )
 
     def test_fileagent_status_service_preview(self):
+        with self.assertRaises(Exception) as cm:
+            failed_count = fileagent_status_service(None, self.fake_args)
+        self.assertIn(
+            "Unexpected exception found during execution",
+            str(cm.exception))
+
         testdata = copy.deepcopy(self.test_data)
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
@@ -310,6 +316,18 @@ class TestFileAgentStatusApp(unittest.TestCase):
                 self.assertTrue(any('Processing failed for CD FileAgent due to' in line for line in cml.output), 'not found', )
                 self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
 
+        testdata = copy.deepcopy(self.test_data)
+        with patch("requests.Session.request") as mock_func:
+            with patch("app.fileagent_status_app.send_request") as send_req:
+                mock_func.side_effect = partial(mock_func_request, node=[testdata[0]])
+                send_req.return_value = True, self.init_data[3]
+                with self.assertLogs(level='INFO') as cml:
+                    failed_count = fileagent_status_service([testdata[0]], self.fake_args)
+                self.assertEqual(failed_count, 0)
+                self.assertTrue(any('Processing started for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('Processing completed for node' in line for line in cml.output), 'not found', )
+                self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
+
     def test_fileagent_status_service_execute(self):
         testdata = copy.deepcopy(self.test_data)
         self.fake_args.execution_mode = 'execute'
@@ -336,5 +354,20 @@ class TestFileAgentStatusApp(unittest.TestCase):
                 #self.assertTrue(any('Updating CD FileAgent status for node' in line for line in cml.output), 'not found', )
                 self.assertTrue(any('Processing completed for node' in line for line in cml.output), 'not found', )
                 self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
+
+        testdata = copy.deepcopy(self.test_data)
+        with patch("requests.Session.request") as mock_func:
+            with patch("app.fileagent_status_app.send_request") as send_req:
+                with patch("app.fileagent_status_app.update_initparam_details") as uip:
+                    mock_func.side_effect = partial(mock_func_request, node=[testdata[0]])
+                    send_req.return_value = True, self.init_data[0]
+                    uip.return_value = False, RESPONSE_DATA
+                    with self.assertLogs(level='INFO') as cml:
+                        failed_count = fileagent_status_service([testdata[0]], self.fake_args)
+
+                    self.assertEqual(failed_count, 0)
+                    #self.assertTrue(any('Updating CD FileAgent status for node' in line for line in cml.output), 'not found', )
+                    self.assertTrue(any('CD file agent status has been failed for node' in line for line in cml.output), 'not found', )
+                    self.assertTrue(any('FileAgent status details for all nodes' in line for line in cml.output), 'not found', )
 
         self.fake_args.execution_mode = EXECUTION_MODE
