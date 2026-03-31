@@ -7,12 +7,6 @@ def mock_read_file(*args, **kwargs):
     #print("mock_cert", args, kwargs)
     return kwargs.get("node")
 
-def read_json_file(file_name, path, json_type=False):
-    if file_name:
-        with open(path + file_name, 'r') as f:
-            return json.load(f) if json_type else f.read()
-    return None
-
 def mock_func_request(*args, **kwargs):
     #print("Mocked request", args, kwargs)
     data = kwargs.get("node") if kwargs.get("node") else {}

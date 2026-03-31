@@ -19,19 +19,24 @@ def read_file(file_name, path, json_type=False):
         :return: json or plain text
     """
     if file_name:
-        with open(path + os.getenv(file_name), 'r') as f:
+        with open(path + file_name, 'r') as f:
             return json.load(f) if json_type else f.read()
     return None
 
 
-def read_node_list_json():
+def read_node_list_json(env):
     """
         Read node list json and append to sequence list
         :return: sequence list
     """
     try:
+        if env.lower() in ENVIRONMENT:
+            node_split = NODE_LIST_FILE.split(".")
+            file_name = f"{node_split[0]}_{env}.{node_split[1]}"
+        else:
+            raise Exception(f"Environment not recognized. Please provide a valid environment. e.g.{ENVIRONMENT}.")
         # Read file and get json data from file
-        node_list = read_file(NODE_LIST_FILE, PARENT_DIR, True)
+        node_list = read_file(file_name, PARENT_DIR, True)
         seq_list = []
         for node in node_list:
             seq_list.append([node])
@@ -76,7 +81,7 @@ def main():
             f"========== CD Enable Disable file agent status process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
-        node_list_json = read_node_list_json()
+        node_list_json = read_node_list_json(args.env)
         logger.info("========== Loading required configuration completed =============")
         status = fileagent_status_service(node_list_json, args)
         if status > 0:
