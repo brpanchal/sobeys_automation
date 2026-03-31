@@ -30,16 +30,22 @@ Before you begin, ensure you have the following installed:
 
 **Configuration Setup**
 Create and configure the following files:
-1. .env: Include environment variables such as API keys, database URLs, etc.
-2. node_list.json: It includes the node information like hostname, os_type and initparms details
-    eg..  {
-            "node": "<node_name>",
-            "hostname": "<node>.sobeys.com",
-            "os_type":"windows or unix or AIX",
-            "fileagent.enable": "N"
-          }
-    Allowed config of fileagent.enable: "Y" or "y" or "N" or "n" only.
-    CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows
+1. .env: Include environment variables such as API keys, URLs, etc.
+   2. node_list.json: It includes the node information like hostname, os_type and initparms details
+       eg..  {
+               "config": {
+                   "cdws_url": "<url>",
+                   "cdws_port": "<port>"
+               },
+               "nodes": [{
+                       "node": "<node_name>",
+                       "hostname": "<node>.sobeys.com",
+                       "os_type":"windows or unix or AIX",
+                       "fileagent.enable": "N"
+                     }]
+            }
+       Allowed config of fileagent.enable: "Y" or "y" or "N" or "n" only.
+       CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows
 3. Run this utility. It will updated the file agent status based on the configuration defined in the node_list.json. When running in "execute" mode, it will first take the backup of the existing configuration and then update the fileagent status (Parameter name: fileagent.enable).
 Note: It doesn't update any other parameters.
 
@@ -63,8 +69,6 @@ Note: It doesn't update any other parameters.
 
     C) The following parameter values are required and must be obtained from the Admin. Once received,
       update them in the .env file accordingly like below(eg..).
-
-        NODE_LIST_FILE="node_list.json"
 
         # Below parameters are across the environment, set for all the environment like DEV, QA, PROD, SIT etc.
         DEV_CDWS_URL="https://dev-cd.example.com"

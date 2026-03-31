@@ -16,6 +16,7 @@ token = None
 cookies = None
 csrf = None
 report_list = []
+base_url = None
 session = requests.Session()
 
 class Systems(StrEnum):
@@ -38,9 +39,8 @@ def sign_on(endpoint, env, host_dict) -> Systems:
         :param host_dict: host details
         :return: status and response
     """
-    global token, cookies, csrf, session
+    global token, cookies, csrf, session, base_url
     sign_on_status = False
-    base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
     url = f"{base_url}{endpoint}"
 
     #If os_type windows then prepare auth data with cred.., port
@@ -154,7 +154,7 @@ def send_request(method, endpoint, env, payload=None):
         :param payload: CD payload
         :return: HTTP response
     """
-    base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
+    global base_url
     url = f"{base_url}{endpoint}"
     headers = get_headers()
 
@@ -516,7 +516,7 @@ def generate_report(mode, success, failed, skipped, updated, skip, update, total
     logger.info("ℹ️ CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows")
 
 
-def fileagent_status_service(node_list_json, args) -> FileAgentStatusEnum:
+def fileagent_status_service(node_list_with_config, args) -> FileAgentStatusEnum:
     """
         Orchestrates preview/update of CD FileAgent status across a list of nodes.
 
@@ -532,73 +532,75 @@ def fileagent_status_service(node_list_json, args) -> FileAgentStatusEnum:
 
         Parameters
         ----------
-        node_list_json : list[list[dict]]
+        node_list_with_config : list[dict]
             Nested list of node json data
         args : argparse.Namespace or similar
             Object containing:
               - env (str): Target environment identifier (e.g., "dev", "qa", "prod")
               - execution_mode (str): Either 'preview' or 'execute'.
     """
+    global base_url
     total_start_time = time.time()
 
     # Aggregate counters for reporting
     success = failed = skipped = updated = 0  # execution-mode counters
     skip = update = 0  # preview-mode counters
-
+    cdws_config = node_list_with_config["config"]
+    node_list = node_list_with_config["nodes"]
+    base_url = f"{cdws_config["cdws_url"]}:{cdws_config["cdws_port"]}"
     try:
         # Iterate through outer lists, then individual nodes
-        for node_list in node_list_json:
-            for node in node_list:
-                try:
-                    logger.info(f"========== Processing started for node {node[NODE]} =============")
-                    # Validate node is ready for processing
-                    prerequisite_to_process_node(node)
-                    # Construct required payload and normalized host metadata for downstream calls
-                    payload, host_dict = get_payload(node)
-                    # Establish a session in the target environment
-                    ensure_signed_on(args.env, host_dict)
+        for node in node_list:
+            try:
+                logger.info(f"========== Processing started for node {node[NODE]} =============")
+                # Validate node is ready for processing
+                prerequisite_to_process_node(node)
+                # Construct required payload and normalized host metadata for downstream calls
+                payload, host_dict = get_payload(node)
+                # Establish a session in the target environment
+                ensure_signed_on(args.env, host_dict)
 
-                    if args.execution_mode == FileAgentStatusEnum.PREVIEW:
-                        # PREVIEW: Only compute the action; do NOT perform updates
-                        result = get_initparam_details(args.env, True)
-                        _, action = prepare_initparams_data(host_dict, result, payload.get(FILEAGENT_KEY, None),
-                                                            args.execution_mode)
-                        # Count preview decision outcomes # e.g., "Skip" "Update"
-                        if action == FileAgentStatusEnum.SKIP:
-                            skip += 1
-                        else:
-                            update += 1
+                if args.execution_mode == FileAgentStatusEnum.PREVIEW:
+                    # PREVIEW: Only compute the action; do NOT perform updates
+                    result = get_initparam_details(args.env, True)
+                    _, action = prepare_initparams_data(host_dict, result, payload.get(FILEAGENT_KEY, None),
+                                                        args.execution_mode)
+                    # Count preview decision outcomes # e.g., "Skip" "Update"
+                    if action == FileAgentStatusEnum.SKIP:
+                        skip += 1
                     else:
-                        # EXECUTION: Fetch current state for the specific node, compute action, and apply if needed
-                        logger.debug(f"Updating CD FileAgent status for node: {host_dict[NODE]}")
-                        result = get_initparam_details(args.env, False, True, host_dict[NODE])
-                        init_result, action = prepare_initparams_data(host_dict, result,
-                                                                      payload.get(FILEAGENT_KEY, None),
-                                                                      args.execution_mode)
-                        # Perform update only when action denotes "Skipped/Updated"
-                        if action == FileAgentStatusEnum.UPDATED:
-                            status, res = update_initparam_details(init_result, args.env)
-                            if status:
-                                updated += 1
-                                logger.info(
-                                    f"CD file agent status has been successfully updated for node: {host_dict[NODE]} and received response: {res}")
-                            else:
-                                logger.info(
-                                    f"CD file agent status has been failed for node: {host_dict[NODE]} and received response: {res}")
-                        else:
-                            # No change necessary or config incorrect; record as skipped
-                            skipped += 1
+                        update += 1
+                else:
+                    # EXECUTION: Fetch current state for the specific node, compute action, and apply if needed
+                    logger.debug(f"Updating CD FileAgent status for node: {host_dict[NODE]}")
+                    result = get_initparam_details(args.env, False, True, host_dict[NODE])
+                    init_result, action = prepare_initparams_data(host_dict, result,
+                                                                  payload.get(FILEAGENT_KEY, None),
+                                                                  args.execution_mode)
+                    # Perform update only when action denotes "Skipped/Updated"
+                    if action == FileAgentStatusEnum.UPDATED:
+                        status, res = update_initparam_details(init_result, args.env)
+                        if status:
+                            updated += 1
                             logger.info(
-                                "Current status matches the requested status or incorrect configured; skipping the update.")
-                    logger.info(f"========== Processing completed for node {host_dict[NODE]} =============")
-                    success += 1
-                except Exception as e:
-                    # Node-level exceptions are logged; processing continues for subsequent nodes
-                    logger.error(f"========== Processing failed for CD FileAgent due to {e} ==========")
-                    failed += 1
-                finally:
-                    # Always ensure we sign out per node to avoid session leakage
-                    ensure_sign_out(args.env)
+                                f"CD file agent status has been successfully updated for node: {host_dict[NODE]} and received response: {res}")
+                        else:
+                            logger.info(
+                                f"CD file agent status has been failed for node: {host_dict[NODE]} and received response: {res}")
+                    else:
+                        # No change necessary or config incorrect; record as skipped
+                        skipped += 1
+                        logger.info(
+                            "Current status matches the requested status or incorrect configured; skipping the update.")
+                logger.info(f"========== Processing completed for node {host_dict[NODE]} =============")
+                success += 1
+            except Exception as e:
+                # Node-level exceptions are logged; processing continues for subsequent nodes
+                logger.error(f"========== Processing failed for CD FileAgent due to {e} ==========")
+                failed += 1
+            finally:
+                # Always ensure we sign out per node to avoid session leakage
+                ensure_sign_out(args.env)
         total_end_time = time.time()
         # Generate a consolidated report after all nodes are processed
         generate_report(args.execution_mode, success, failed, skipped, updated, skip, update,

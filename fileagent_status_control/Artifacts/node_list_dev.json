@@ -1,14 +1,20 @@
-[
-    {
-        "node": "SAPRMSS4",
-        "hostname": "c1-s4dsap-d.sobeys.com",
-        "os_type": "unix",
-        "fileagent.enable": "y"
+{
+    "config": {
+        "cdws_url": "https://o-svtacdws1-d.sobeys.com",
+        "cdws_port": "9443"
     },
-    {
-        "node": "DMNAT01",
-        "hostname": "10.155.114.43",
-        "os_type": "windows",
-        "fileagent.enable": "Y"
-    }
-]
+    "nodes": [
+        {
+            "node": "SAPRMSS4",
+            "hostname": "c1-s4dsap-d.sobeys.com",
+            "os_type": "unix",
+            "fileagent.enable": "y"
+        },
+        {
+            "node": "DMNAT01",
+            "hostname": "10.155.114.43",
+            "os_type": "windows",
+            "fileagent.enable": "Y"
+        }
+    ]
+}

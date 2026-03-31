@@ -5,6 +5,7 @@ PARENT_DIR="./Artifacts/"
 NODE_INIT_BACKUP_PATH = "NODE_INIT_BACKUP/"
 ENVIRONMENT = ["dev", "qa", "prod"]
 NODE_LIST_FILE = "node_list.json"
+ENV_FILE = ".env"
 FILEAGENT_REGEX = r'(?i)(?P<prefix>\bfileagent\.enable\s*=\s*)(?P<val>[YN])\b'
 CDFA_REGEX = r'(?i)(?P<prefix>\bcdfa\.enable\s*=\s*)(?P<val>[yn])\b'
 FILEAGENT_KEY = "fileagent.enable"
