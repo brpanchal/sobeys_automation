@@ -1,4 +1,3 @@
-import os
 import json
 import argparse
 import sys
@@ -29,40 +28,43 @@ def read_file(file_name, path, json_type=False):
                     return json.load(f)
                 except json.JSONDecodeError as e:
                     logger.debug("Invalid JSON:%s", e)
-                    raise ValueError(f"Invalid JSON in file {file_name} from {actual_file_path}")
+                    raise ValueError(f"Invalid JSON in file {file_name} at given path {actual_file_path}")
             else:
                 return f.read()
     else:
-        raise Exception("Node list json file not found in the given path!")
+        raise Exception(f"Node list file ({file_name}) not found at specified path ({actual_file_path})!")
 
 
 def read_node_list_json(env):
     """
-        Read node list json and append to sequence list
-        :return: sequence list
+        Load node list json as per environment variable
+        :return: sequence list of nodes along with cdws config
     """
-    try:
-        logger.debug(f"Reading node list json from {env}")
-        if env.lower() in ENVIRONMENT:
-            node_split = NODE_LIST_FILE.split(".")
-            file_name = f"{node_split[0]}_{env}.{node_split[1]}"
-        else:
-            raise Exception(f"Environment not recognized. Please provide a valid environment. e.g.{ENVIRONMENT}.")
-        # Read file and get json data from file
-        node_list_with_config = read_file(file_name, PARENT_DIR, True)
-        logger.info("Node list file found and json validated successfully.")
-        return node_list_with_config
-    except Exception as e:
-        raise Exception(f"Error due to: {e}")
+    logger.debug(f"Reading node list json from {env}")
+    if env.lower() in ENVIRONMENT:
+        node_split = NODE_LIST_FILE.split(".")
+        file_name = f"{node_split[0]}_{env}.{node_split[1]}"
+    else:
+        raise Exception(f"Environment not recognized. Please provide a valid environment. e.g.{ENVIRONMENT}.")
+    # Read file and get json data from file
+    node_list_with_config = read_file(file_name, PARENT_DIR, True)
+    logger.info(f"Node list file({file_name}) found and json data validated successfully.")
+    return node_list_with_config, file_name
 
-def env_config_node_file_exists(node_list_with_config):
+def check_env_file_and_validate_node_config(node_list_with_config, file_name):
+    """
+    Check if env file exists and validate node list json as key value pair
+    :param node_list_with_config: node list json
+    :param file_name: file name
+    :return: None if all checkpoint valid otherwise it raise exception
+    """
     #Check point for .env file
     env_path = Path(ENV_FILE)
 
     if env_path.is_file():
-        logger.info("Environment file found and loaded successfully.")
+        logger.info("Environment file (.env) found and loaded successfully.")
     else:
-        raise Exception(".env file is missing in the directory!")
+        raise Exception("Environment (.env) file is missing in the utility directory!")
 
     try:
         #Checkpoint for config data
@@ -73,15 +75,15 @@ def env_config_node_file_exists(node_list_with_config):
             else:
                 raise Exception("cdws_url and cdws_port are required to sign on cdws portal!")
         else:
-            raise Exception("Config (cdws_url and cdws_port) are missing in config and node list file.")
+            raise Exception("Config (cdws_url and cdws_port) are missing in config.")
 
         #checkpoint for node_data
         nodes = node_list_with_config.get("nodes", None)
         if (not nodes) or (len(nodes) == 0):
-            raise Exception("Node json data not found in the node list file!")
+            raise Exception(f"Node json data not found in the node list file({file_name})!")
     except Exception as e:
         logger.debug(f"Error due to: {e}")
-        raise Exception(f"Configuration or node list json data is not configured correctly:{e}")
+        raise Exception(f"Configuration or node list json data is not configured correctly in file ({file_name}):{e}")
 
 def input_parser():
     """
@@ -102,7 +104,7 @@ def input_parser():
         "--execution-mode", required=True,
         choices=["preview", "execute"],
         default="preview",
-        help="Choose 'preview' to simulate changes or 'execute' to apply the changes.)"
+        help="Choose 'preview' to simulate changes or 'execute' to apply the changes."
     )
     args = parser.parse_args()
     return args
@@ -119,8 +121,8 @@ def main():
             f"========== CD Enable Disable file agent status process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
-        node_list_with_config = read_node_list_json(args.env)
-        env_config_node_file_exists(node_list_with_config)
+        node_list_with_config, file_name = read_node_list_json(args.env)
+        check_env_file_and_validate_node_config(node_list_with_config, file_name)
         logger.info("========== Loading required configuration completed =============")
         status = fileagent_status_service(node_list_with_config, args)
         if status > 0:

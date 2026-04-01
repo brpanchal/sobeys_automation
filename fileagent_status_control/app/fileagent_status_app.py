@@ -198,9 +198,10 @@ def get_initparam_details(env, json_type=None, backup=False, node=None):
         logger.info(f"Started backup of initparams details for node {node}")
         node_backup = f"{NODE_INIT_BACKUP_PATH}{timestamp}"
         os.makedirs(PARENT_DIR + node_backup, exist_ok=True)
-        with open(os.path.join(PARENT_DIR, node_backup, f"{node}_INITPARAMS.json"), "w") as json_file:
+        file_dir = os.path.join(PARENT_DIR, node_backup, f"{node}_INITPARAMS.json")
+        with open(file_dir, "w") as json_file:
             json.dump(result, json_file, indent=4)
-        logger.info(f"Completed backup of initparams details for node {node}")
+        logger.info(f"Completed backup of initparams details for node {node} on path:{file_dir}")
     return result
 
 

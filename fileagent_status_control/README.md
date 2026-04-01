@@ -30,8 +30,9 @@ Before you begin, ensure you have the following installed:
 
 **Configuration Setup**
 Create and configure the following files:
-1. .env: Include environment variables such as API keys, URLs, etc.
-   2. node_list.json: It includes the node information like hostname, os_type and initparms details
+   1. .env: Include environment variables such as API keys, URLs, etc.
+   2. node_list.json: It includes the nodes information like hostname, os_type and initparms details
+   3. Config includes the Connect:Direct Web Services cdws_url and cdws port to sign on and perform any operation
        eg..  {
                "config": {
                    "cdws_url": "<url>",
@@ -67,8 +68,14 @@ Note: It doesn't update any other parameters.
 
     A) Manual Step: Create a .env file within the `/fileagent_status_control/` folder. Copy the contents from env_info.txt into it.
 
-    C) The following parameter values are required and must be obtained from the Admin. Once received,
+    B) The following parameter values are required and must be obtained from the Admin. Once received,
       update them in the .env file accordingly like below(eg..).
+    **Important**
+       Please ensure:
+       The file name is exactly .env
+       There are no extra extensions (e.g., .env.txt, .env.example, .env.dev)
+       The file is placed in the project root directory
+       Incorrect filenames may prevent the application from reading configuration values. 
 
         # Below parameters are across the environment, set for all the environment like DEV, QA, PROD, SIT etc.
         DEV_CDWS_URL="https://dev-cd.example.com"
