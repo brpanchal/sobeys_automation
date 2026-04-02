@@ -38,7 +38,7 @@ def sign_on(endpoint, env, host_dict) -> Systems:
         :param host_dict: host details
         :return: status and response
     """
-    global token, cookies, csrf, session, base_url
+    global token, cookies, csrf, session
     sign_on_status = False
     base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
     url = f"{base_url}{endpoint}"
@@ -154,7 +154,6 @@ def send_request(method, endpoint, env, payload=None):
         :param payload: CD payload
         :return: HTTP response
     """
-    global base_url
     base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
     url = f"{base_url}{endpoint}"
     headers = get_headers()
@@ -542,12 +541,12 @@ def fileagent_status_service(node_list, args) -> FileAgentStatusEnum:
               - env (str): Target environment identifier (e.g., "dev", "qa", "prod")
               - execution_mode (str): Either 'preview' or 'execute'.
     """
-    global base_url
     total_start_time = time.time()
 
     # Aggregate counters for reporting
     success = failed = skipped = updated = 0  # execution-mode counters
     skip = update = 0  # preview-mode counters
+
     try:
         # Iterate through outer lists, then individual nodes
         for node in node_list:

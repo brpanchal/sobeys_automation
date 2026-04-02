@@ -31,20 +31,13 @@ Before you begin, ensure you have the following installed:
 **Configuration Setup**
 Create and configure the following files:
    1. .env: Include environment variables such as API keys, URLs, etc.
-   2. node_list.json: It includes the nodes information like hostname, os_type and initparms details
-   3. Config includes the Connect:Direct Web Services cdws_url and cdws port to sign on and perform any operation
-       eg..  {
-               "config": {
-                   "cdws_url": "<url>",
-                   "cdws_port": "<port>"
-               },
-               "nodes": [{
+   2. node_list_<ENV>.json: It includes the nodes information like node name,hostname, os_type and fileagent flag details
+       eg..  [{
                        "node": "<node_name>",
                        "hostname": "<node>.sobeys.com",
                        "os_type":"windows or unix or AIX",
                        "fileagent.enable": "N"
-                     }]
-            }
+             }]
        Allowed config of fileagent.enable: "Y" or "y" or "N" or "n" only.
        CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows
 3. Run this utility. It will updated the file agent status based on the configuration defined in the node_list.json. When running in "execute" mode, it will first take the backup of the existing configuration and then update the fileagent status (Parameter name: fileagent.enable).
