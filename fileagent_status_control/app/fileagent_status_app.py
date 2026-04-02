@@ -16,7 +16,6 @@ token = None
 cookies = None
 csrf = None
 report_list = []
-base_url = None
 session = requests.Session()
 
 class Systems(StrEnum):
@@ -41,6 +40,7 @@ def sign_on(endpoint, env, host_dict) -> Systems:
     """
     global token, cookies, csrf, session, base_url
     sign_on_status = False
+    base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
     url = f"{base_url}{endpoint}"
 
     #If os_type windows then prepare auth data with cred.., port
@@ -155,6 +155,7 @@ def send_request(method, endpoint, env, payload=None):
         :return: HTTP response
     """
     global base_url
+    base_url = f"{os.getenv(f"{env}_CDWS_URL")}:{os.getenv(f"CDWS_PORT")}"
     url = f"{base_url}{endpoint}"
     headers = get_headers()
 
@@ -455,9 +456,10 @@ def prerequisite_to_process_node(node):
     """
     hostname = node.get(HOSTNAME, "")
     os_type = node.get(OS_TYPE, "")
-    if not (os_type and hostname):
+    node_name = node.get(NODE, "")
+    if not (os_type and hostname and node_name):
         raise Exception(
-            f"node_list not configured properly. either hostname or os_type not found or invalid values for node:{node.get(NODE)}.")
+            f"node_list not configured properly. either hostname, node name or os_type not found or invalid values for node:{node.get(NODE)}.")
 
 
 def generate_report(mode, success, failed, skipped, updated, skip, update, total_time) -> FileAgentStatusEnum:
@@ -517,7 +519,7 @@ def generate_report(mode, success, failed, skipped, updated, skip, update, total
     logger.info("ℹ️ CD File Agent status naming conventions: y/n for Unix ; Y/N for Windows")
 
 
-def fileagent_status_service(node_list_with_config, args) -> FileAgentStatusEnum:
+def fileagent_status_service(node_list, args) -> FileAgentStatusEnum:
     """
         Orchestrates preview/update of CD FileAgent status across a list of nodes.
 
@@ -533,7 +535,7 @@ def fileagent_status_service(node_list_with_config, args) -> FileAgentStatusEnum
 
         Parameters
         ----------
-        node_list_with_config : list[dict]
+        node_list : list[dict]
             Nested list of node json data
         args : argparse.Namespace or similar
             Object containing:
@@ -546,16 +548,13 @@ def fileagent_status_service(node_list_with_config, args) -> FileAgentStatusEnum
     # Aggregate counters for reporting
     success = failed = skipped = updated = 0  # execution-mode counters
     skip = update = 0  # preview-mode counters
-    cdws_config = node_list_with_config["config"]
-    node_list = node_list_with_config["nodes"]
-    base_url = f"{cdws_config["cdws_url"]}:{cdws_config["cdws_port"]}"
     try:
         # Iterate through outer lists, then individual nodes
         for node in node_list:
             try:
-                logger.info(f"========== Processing started for node {node[NODE]} =============")
                 # Validate node is ready for processing
                 prerequisite_to_process_node(node)
+                logger.info(f"========== Processing started for node {node[NODE]} =============")
                 # Construct required payload and normalized host metadata for downstream calls
                 payload, host_dict = get_payload(node)
                 # Establish a session in the target environment
@@ -608,4 +607,4 @@ def fileagent_status_service(node_list_with_config, args) -> FileAgentStatusEnum
                         total_end_time - total_start_time)
         return failed
     except Exception as e:
-        raise Exception(f"Unexpected exception found during execution: {str(e)}")
+        raise Exception(f"⛔ Unexpected exception found during execution: {str(e)}")

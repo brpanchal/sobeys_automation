@@ -35,7 +35,7 @@ def read_file(file_name, path, json_type=False):
         raise Exception(f"Node list file ({file_name}) not found at specified path ({actual_file_path})!")
 
 
-def read_node_list_json(env):
+def check_node_list_file_and_validate_node_config(env):
     """
         Load node list json as per environment variable
         :return: sequence list of nodes along with cdws config
@@ -47,16 +47,23 @@ def read_node_list_json(env):
     else:
         raise Exception(f"Environment not recognized. Please provide a valid environment. e.g.{ENVIRONMENT}.")
     # Read file and get json data from file
-    node_list_with_config = read_file(file_name, PARENT_DIR, True)
-    logger.info(f"Node list file({file_name}) found and json data validated successfully.")
-    return node_list_with_config, file_name
+    node_list = read_file(file_name, PARENT_DIR, True)
 
-def check_env_file_and_validate_node_config(node_list_with_config, file_name):
+    try:
+        #checkpoint for node_data
+        if (not node_list) or (len(node_list) == 0):
+            raise Exception(f"Node json data not found in the node list file({file_name})!")
+    except Exception as e:
+        logger.debug(f"Error due to: {e}")
+        raise Exception(f"Node list json data is not configured correctly in file ({file_name}):{e}")
+
+    logger.info(f"Node list file({file_name}) found and json data validated successfully.")
+    return node_list
+
+def is_env_file_exist():
     """
-    Check if env file exists and validate node list json as key value pair
-    :param node_list_with_config: node list json
-    :param file_name: file name
-    :return: None if all checkpoint valid otherwise it raise exception
+    Check if env file exists
+    :return: None if checkpoint valid otherwise it raise exception
     """
     #Check point for .env file
     env_path = Path(ENV_FILE)
@@ -65,25 +72,6 @@ def check_env_file_and_validate_node_config(node_list_with_config, file_name):
         logger.info("Environment file (.env) found and loaded successfully.")
     else:
         raise Exception("Environment (.env) file is missing in the utility directory!")
-
-    try:
-        #Checkpoint for config data
-        config = node_list_with_config.get("config", None)
-        if config:
-            if config.get('cdws_url', None) and config.get('cdws_port', None):
-                logger.debug("Configurations for cdws portal is available!")
-            else:
-                raise Exception("cdws_url and cdws_port are required to sign on cdws portal!")
-        else:
-            raise Exception("Config (cdws_url and cdws_port) are missing in config.")
-
-        #checkpoint for node_data
-        nodes = node_list_with_config.get("nodes", None)
-        if (not nodes) or (len(nodes) == 0):
-            raise Exception(f"Node json data not found in the node list file({file_name})!")
-    except Exception as e:
-        logger.debug(f"Error due to: {e}")
-        raise Exception(f"Configuration or node list json data is not configured correctly in file ({file_name}):{e}")
 
 def input_parser():
     """
@@ -121,16 +109,16 @@ def main():
             f"========== CD Enable Disable file agent status process started: Env={args.env}, Execution mode={args.execution_mode} ==========")
 
         logger.info("========== Loading required configuration started =============")
-        node_list_with_config, file_name = read_node_list_json(args.env)
-        check_env_file_and_validate_node_config(node_list_with_config, file_name)
+        is_env_file_exist()
+        node_list = check_node_list_file_and_validate_node_config(args.env)
         logger.info("========== Loading required configuration completed =============")
-        status = fileagent_status_service(node_list_with_config, args)
+        status = fileagent_status_service(node_list, args)
         if status > 0:
             return_code = 1
     except Exception as e:
-        logger.error(f"Unexpected exception found during execution: {str(e)}")
+        logger.error(f"⛔ Unexpected exception found during execution: {str(e)}")
         return_code = 1
-        raise Exception(f"Unexpected exception found during execution: {str(e)}")
+        raise Exception(f"⛔ Unexpected exception found during execution: {str(e)}")
     finally:
         logger.info(f"========== CD Enable Disable file agent status process completed ==========")
         logger.info(f"Exit code = {return_code}")

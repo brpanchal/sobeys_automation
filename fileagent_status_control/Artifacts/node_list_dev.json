@@ -1,9 +1,4 @@
-{
-    "config": {
-        "cdws_url": "https://o-svtacdws1-d.sobeys.com",
-        "cdws_port": "9443"
-    },
-    "nodes": [
+[
         {
             "node": "OFLLAB1SV001ISP",
             "hostname": "OFLLAB1SV001ISP",
@@ -22,5 +17,4 @@
             "os_type": "windows",
             "fileagent.enable": "Y"
         }
-    ]
-}
+]

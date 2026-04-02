@@ -1,9 +1,10 @@
-{
-    "config": {
-        "cdws_url": "",
-        "cdws_port": "9443"
-    },
-    "nodes": [
+[
+        {
+            "node": "OFLLAB1SV001ISP",
+            "hostname": "OFLLAB1SV001ISP",
+            "os_type": "windows",
+            "fileagent.enable": "y"
+        },
         {
             "node": "SAPRMSS4",
             "hostname": "c1-s4dsap-d.sobeys.com",
@@ -16,5 +17,4 @@
             "os_type": "windows",
             "fileagent.enable": "Y"
         }
-    ]
-}
+]
