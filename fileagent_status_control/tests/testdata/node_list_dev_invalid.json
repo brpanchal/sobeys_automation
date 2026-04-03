@@ -1,0 +1,8 @@
+[
+    {
+      "node": "Dummy1",
+      "hostname": "dummy1.com",
+      "os_type": "unix system",
+      "fileagent.enable": "y"
+    },
+]

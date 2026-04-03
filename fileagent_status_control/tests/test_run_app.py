@@ -27,24 +27,54 @@ class TestRunApp(unittest.TestCase):
         self.fake_args.execution_mode = "preview"
 
     def test_read_file_without_file(self):
-        res = read_file(None, None)
-        self.assertEqual(res, None)
+        with self.assertRaises(Exception) as cm:
+            res = read_file(None, None)
+
+        self.assertIn(DIR_NOT_FOUND, str(cm.exception), "Not Received exception error to validate")
+
+    def test_read_file_with_invalid_jsonfile(self):
+        with self.assertRaises(Exception) as cm:
+            res = read_file(INVALID_FILE, TEST_DATA_PATH, True)
+
+        self.assertIn(f"Invalid JSON in file {INVALID_FILE} at given path", str(cm.exception), "Not Received exception error to validate")
+
+        with self.assertRaises(Exception) as cm:
+            res = read_file(FILENAME+"-", TEST_DATA_PATH, True)
+
+        self.assertIn(f"Node list file ({FILENAME+"-"}) not found at specified path", str(cm.exception),
+                      "Not Received exception error to validate")
+
+    def test_read_file_with_invalid_env(self):
+        with self.assertRaises(Exception) as cm:
+            node_list = check_node_list_file_and_validate_node_config("test")
+
+        self.assertIn(f"Environment not recognized. Please provide a valid environment.", str(cm.exception), "Not Received exception error to validate")
+
+        with patch("run_app.ENV_FILE") as mock_cons:
+            mock_cons.return_value = '.envc'
+            with self.assertRaises(Exception) as cm:
+                node_list = is_env_file_exist()
+
+            self.assertIn(f"Environment (.env) file is missing in the utility directory!", str(cm.exception), "Not Received exception error to validate")
+
 
     def test_read_file_with_filedata(self):
         if len(self.node_data) > 0:
             self.assertListEqual(list(self.node_data[0][0].keys()), NODE_LIST, "Not matched keys with data received from file")
 
+        res = read_file(FILENAME, TEST_DATA_PATH)
+        self.assertEqual(type(res), str, "Not matched type of data received from file")
+
     def test_read_node_list_json_data(self):
         with patch("run_app.read_file", return_value=self.data):
-            node_list = read_node_list_json()
-            self.assertTrue(isinstance(node_list[1], list))
-            self.assertTrue(isinstance(node_list[1][0], dict))
+            node_list = check_node_list_file_and_validate_node_config(self.fake_args.env)
             self.assertTrue(isinstance(node_list, list))
+            self.assertTrue(isinstance(node_list[0], dict))
 
     def test_read_node_list_json_with_exception(self):
         with patch("run_app.read_file", return_value=None):
             with self.assertRaises(Exception) as cm:
-                read_node_list_json()
+                check_node_list_file_and_validate_node_config(self.fake_args.env)
 
             self.assertIn(FILE_ERROR, str(cm.exception), "Not Received exception error to validate")
 
@@ -134,7 +164,7 @@ class TestRunApp(unittest.TestCase):
         )
 
     @patch("run_app.fileagent_status_service", side_effect=RuntimeError("boom"))
-    @patch("run_app.read_node_list_json", return_value={"nodes": []})
+    @patch("run_app.check_node_list_file_and_validate_node_config", return_value={"nodes": []})
     @patch("run_app.logger")
     @patch("run_app.input_parser")
     def test_main_wraps_exceptions(self, mock_input_parser, mock_logger, mock_read_node_list_json, mock_run_service):
@@ -155,7 +185,7 @@ class TestRunApp(unittest.TestCase):
         mock_read_node_list_json.assert_called_once()
 
     @patch("run_app.fileagent_status_service", side_effect=ValueError("service error"))
-    @patch("run_app.read_node_list_json", return_value={"nodes": ["x"]})
+    @patch("run_app.check_node_list_file_and_validate_node_config", return_value={"nodes": ["x"]})
     @patch("run_app.logger")
     @patch("run_app.input_parser")
     def test_main_finally_always_runs(self, mock_input_parser, mock_logger, *_):
