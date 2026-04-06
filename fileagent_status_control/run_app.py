@@ -17,22 +17,25 @@ def read_file(file_name, path, json_type=False):
         :param json_type: json(True) or plain(False)
         :return: json or plain text
     """
-    actual_file_path = path + file_name
-    path = Path(actual_file_path)
+    if path and file_name:
+        actual_file_path = path + file_name
+        path = Path(actual_file_path)
 
-    if path.is_file():
-        logger.debug(f"Reading file {file_name} from {actual_file_path}")
-        with open(actual_file_path, 'r') as f:
-            if json_type:
-                try:
-                    return json.load(f)
-                except json.JSONDecodeError as e:
-                    logger.debug("Invalid JSON:%s", e)
-                    raise ValueError(f"Invalid JSON in file {file_name} at given path {actual_file_path}")
-            else:
-                return f.read()
+        if path.is_file():
+            logger.debug(f"Reading file {file_name} from {actual_file_path}")
+            with open(actual_file_path, 'r') as f:
+                if json_type:
+                    try:
+                        return json.load(f)
+                    except json.JSONDecodeError as e:
+                        logger.debug("Invalid JSON:%s", e)
+                        raise ValueError(f"Invalid JSON in file {file_name} at given path {actual_file_path}")
+                else:
+                    return f.read()
+        else:
+            raise Exception(f"Node list file ({file_name}) not found at specified path ({actual_file_path})!")
     else:
-        raise Exception(f"Node list file ({file_name}) not found at specified path ({actual_file_path})!")
+        raise Exception(f"Either path ({path}) or filename({file_name}) is missing to load the configuration")
 
 
 def check_node_list_file_and_validate_node_config(env):

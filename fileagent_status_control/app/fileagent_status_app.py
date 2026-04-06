@@ -10,6 +10,7 @@ from .constants import *
 import re
 from enum import StrEnum
 import html
+from pathlib import Path
 
 load_dotenv()
 token = None
@@ -199,9 +200,11 @@ def get_initparam_details(env, json_type=None, backup=False, node=None):
         node_backup = f"{NODE_INIT_BACKUP_PATH}{timestamp}"
         os.makedirs(PARENT_DIR + node_backup, exist_ok=True)
         file_dir = os.path.join(PARENT_DIR, node_backup, f"{node}_INITPARAMS.json")
+        file_path = Path(file_dir)
+        absolute_path = file_path.resolve()
         with open(file_dir, "w") as json_file:
             json.dump(result, json_file, indent=4)
-        logger.info(f"Completed backup of initparams details for node {node} on path:{file_dir}")
+        logger.info(f"Completed backup of initparams details for node {node} on path:{absolute_path}")
     return result
 
 

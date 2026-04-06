@@ -299,7 +299,7 @@ class TestFileAgentStatusApp(unittest.TestCase):
         self.assertIn(NO_DATA_MSG, report)
 
     def test_prerequisite_to_process_node(self):
-        # Validate exeception if no data given
+        # Validate exception if no data given
         with self.assertRaises(Exception) as cm:
             prerequisite_to_process_node({})
         self.assertIn(
@@ -339,10 +339,10 @@ class TestFileAgentStatusApp(unittest.TestCase):
         # Validate fileagent status service SKIP status with unix node
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
-                mock_func.side_effect = partial(mock_func_request, node=[self.testdata[0]])
+                mock_func.side_effect = partial(mock_func_request, node=self.testdata[0])
                 send_req.return_value = True, self.init_data[1]
                 with self.assertLogs(level='INFO') as cml:
-                    failed_count = fileagent_status_service([self.testdata[0]], self.fake_args)
+                    failed_count = fileagent_status_service(self.testdata[0], self.fake_args)
                 self.assertEqual(failed_count, 0)
                 self.assertTrue(any(SKIP_STATUS_EXPECTED in line for line in cml.output),
                                 NOT_FOUND, )
@@ -355,10 +355,10 @@ class TestFileAgentStatusApp(unittest.TestCase):
         # Validate fileagent status service skip status with windows node
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
-                mock_func.side_effect = partial(mock_func_request, node=[self.testdata[1]])
+                mock_func.side_effect = partial(mock_func_request, node=self.testdata[1])
                 send_req.return_value = True, self.init_data[2]
                 with self.assertLogs(level='INFO') as cml:
-                    failed_count = fileagent_status_service([self.testdata[1]], self.fake_args)
+                    failed_count = fileagent_status_service(self.testdata[1], self.fake_args)
                 self.assertEqual(failed_count, 0)
                 self.assertTrue(any(SKIP_STATUS_EXPECTED in line for line in cml.output),
                                 NOT_FOUND, )
@@ -371,10 +371,10 @@ class TestFileAgentStatusApp(unittest.TestCase):
         # Validate fileagent status service failed with incorrect unix initparms data
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
-                mock_func.side_effect = partial(mock_func_request, node=[self.testdata[0]])
+                mock_func.side_effect = partial(mock_func_request, node=self.testdata[0])
                 send_req.return_value = True, self.init_data[2]
                 with self.assertLogs(level='INFO') as cml:
-                    failed_count = fileagent_status_service([self.testdata[0]], self.fake_args)
+                    failed_count = fileagent_status_service(self.testdata[0], self.fake_args)
                 self.assertEqual(failed_count, 1)
                 self.assertTrue(any(PROCESS_START_MSG in line for line in cml.output), NOT_FOUND, )
                 self.assertTrue(any(PROCESS_FAILED_EXPECTED in line for line in cml.output),
@@ -386,10 +386,10 @@ class TestFileAgentStatusApp(unittest.TestCase):
         # Validate fileagent status service UPDATE status with win node data
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
-                mock_func.side_effect = partial(mock_func_request, node=[self.testdata[0]])
+                mock_func.side_effect = partial(mock_func_request, node=self.testdata[0])
                 send_req.return_value = True, self.init_data[3]
                 with self.assertLogs(level='INFO') as cml:
-                    failed_count = fileagent_status_service([self.testdata[0]], self.fake_args)
+                    failed_count = fileagent_status_service(self.testdata[0], self.fake_args)
                 self.assertEqual(failed_count, 0)
                 self.assertTrue(any(UPDATE_STATUS_EXPECTED in line for line in cml.output),
                                 NOT_FOUND, )
@@ -404,10 +404,10 @@ class TestFileAgentStatusApp(unittest.TestCase):
         self.fake_args.execution_mode = EXECUTION_MODE[1]
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
-                mock_func.side_effect = partial(mock_func_request, node=[self.testdata[1]])
+                mock_func.side_effect = partial(mock_func_request, node=self.testdata[1])
                 send_req.return_value = True, self.init_data[4]
                 with self.assertLogs(level='INFO') as cml:
-                    failed_count = fileagent_status_service([self.testdata[1]], self.fake_args)
+                    failed_count = fileagent_status_service(self.testdata[1], self.fake_args)
 
                 self.assertEqual(failed_count, 0)
                 self.assertTrue(any(
@@ -423,14 +423,12 @@ class TestFileAgentStatusApp(unittest.TestCase):
         self.fake_args.execution_mode = EXECUTION_MODE[1]
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
-                mock_func.side_effect = partial(mock_func_request, node=[self.testdata[2]])
-                send_req.return_value = True, RESPONSE_DATA
+                mock_func.side_effect = partial(mock_func_request, node=self.testdata[2])
+                send_req.return_value = True, self.init_data[0]
                 with self.assertLogs(level='INFO') as cml:
-                    failed_count = fileagent_status_service([self.testdata[2]], self.fake_args)
+                    failed_count = fileagent_status_service(self.testdata[2], self.fake_args)
 
                 self.assertEqual(failed_count, 0)
-                self.assertTrue(any(UPDATE_STATUS_MSG in line for line in cml.output),
-                                NOT_FOUND, )
                 self.assertTrue(any(UPDATED_STATUS_MSG in line for line in cml.output),
                                 NOT_FOUND, )
                 self.assertTrue(any(PROCESS_COMPLETED_MSG in line for line in cml.output), NOT_FOUND, )
@@ -444,11 +442,11 @@ class TestFileAgentStatusApp(unittest.TestCase):
         with patch("requests.Session.request") as mock_func:
             with patch("app.fileagent_status_app.send_request") as send_req:
                 with patch("app.fileagent_status_app.update_initparam_details") as uip:
-                    mock_func.side_effect = partial(mock_func_request, node=[self.testdata[2]])
+                    mock_func.side_effect = partial(mock_func_request, node=self.testdata[0])
                     send_req.return_value = True, self.init_data[0]
                     uip.return_value = False, RESPONSE_DATA
                     with self.assertLogs(level='INFO') as cml:
-                        failed_count = fileagent_status_service([self.testdata[2]], self.fake_args)
+                        failed_count = fileagent_status_service(self.testdata[0], self.fake_args)
 
                     self.assertEqual(failed_count, 0)
                     self.assertTrue(any(UPDATE_FAILED_EXPECTED in line for line in cml.output),

@@ -44,7 +44,7 @@ NO_DATA_MSG = "— No data —"
 NOT_FOUND = 'Not found'
 PROCESS_START_MSG = "Processing started for node"
 PROCESS_COMPLETED_MSG = 'Processing completed for node'
-INCORRECT_NODE_EXCEPTION = "node_list not configured properly. either hostname or os_type not found or invalid values for node"
+INCORRECT_NODE_EXCEPTION = "node_list not configured properly. either hostname, node name or os_type not found or invalid values for node"
 HTTPERROR_EXPECTED= 'HTTPError exception during GET'
 ERROR_400 = '400 Client Error'
 ERROR_404 = '404 Client Error'
@@ -60,6 +60,6 @@ ERROR_400_MSG = "400 Client Error: Not Found"
 ERROR_404_MSG ="404 Client Error: Not Found"
 ERROR_500_MSG="500 Server error exception raised"
 RESPONSE_DATA = {"INITPARMS": [{"messageCode": 200,"message": "Init Parms data has been updated successfully"}]}
-
+UPDATED_STATUS_MSG = "CD file agent status has been successfully updated for node"
 
 
