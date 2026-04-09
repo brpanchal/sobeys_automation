@@ -22,6 +22,8 @@ session = requests.Session()
 class Systems(StrEnum):
     WINDOWS = "windows"
     UNIX = "unix"
+    AIX = "aix"
+    LINUX = "linux"
 
 class FileAgentStatusEnum(StrEnum):
     PREVIEW = "preview"
@@ -463,6 +465,10 @@ def prerequisite_to_process_node(node):
         raise Exception(
             f"node_list not configured properly. either hostname, node name or os_type not found or invalid values for node:{node.get(NODE)}.")
 
+    values = [s.value for s in Systems]
+    if os_type not in values:
+        raise Exception(
+            f"os type('{os_type}') is not valid as per system list {values} for node:{node.get(NODE)}.")
 
 def generate_report(mode, success, failed, skipped, updated, skip, update, total_time) -> FileAgentStatusEnum:
     """
