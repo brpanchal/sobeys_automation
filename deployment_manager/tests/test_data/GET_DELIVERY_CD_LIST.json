@@ -1,0 +1,40 @@
+[
+  {
+    "_id": "SBYS_FW_DELIVERY_CD|||98",
+    "codeListName": "SBYS_FW_DELIVERY_CD",
+    "versionNumber": 98,
+    "createDate": "2025-04-03T02:50:23.213+0000",
+    "userName": "File Gateway Admin User",
+    "listStatus": 1,
+    "codes": [
+      {
+        "description": "F2FF_TEST_BUYER_QUE_DL",
+        "receiverCode": "quebec.rec",
+        "senderCode": "TEST01|TEST02",
+        "text1": "TEST",
+        "text2": "",
+        "text3": "/test_t15/dat",
+        "text4": "",
+        "text5": "",
+        "text6": "/test/cdadm/scripts/remote_whse_95.sh $DEST_DIR $FILENAME CDRBUYER",
+        "text7": "SBYS_FW_TEST_SLIDE_PREPROC",
+        "text8": "",
+        "text9": ""
+      },
+      {
+        "description": "F2FF_TEST01_DSCOBOH_DL",
+        "receiverCode": "/TEST/RSCSVR28/dscoboh.%.%",
+        "senderCode": "TEST|TEST01",
+        "text1": "TEST02",
+        "text2": "",
+        "text3": "/test/NPD/in/BOH",
+        "text4": "",
+        "text5": "",
+        "text6": "",
+        "text7": "",
+        "text8": "",
+        "text9": ""
+      }
+    ]
+  }
+]

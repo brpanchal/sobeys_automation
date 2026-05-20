@@ -2,78 +2,78 @@
   "totalRecords": 16,
   "watchDirList": [
     {
-      "watchedDir": "/chroot/home/rbh/in",
-      "comments": "/chroot/home/rbh/in",
+      "watchedDir": "/test/home/rbh/in",
+      "comments": "/test/home/rbh/in",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/com/awr/drifqueout",
-      "comments": "/com/awr/drifqueout",
+      "watchedDir": "/test/awr/drifqueout",
+      "comments": "/test/awr/drifqueout",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/com/awr/drifwstout",
-      "comments": "/com/awr/drifwstout",
+      "watchedDir": "/test/awr/drifwstout",
+      "comments": "/test/awr/drifwstout",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/com/awr/outbox",
-      "comments": "/com/awr/outbox",
+      "watchedDir": "/test/awr/outbox",
+      "comments": "/test/awr/outbox",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_d66/dat",
-      "comments": "/exe_d66/dat",
+      "watchedDir": "/test_d66/dat",
+      "comments": "/test_d66/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_d86/dat",
-      "comments": "/exe_d86/dat",
+      "watchedDir": "/test_d86/dat",
+      "comments": "/test_d86/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t14/dat",
-      "comments": "/exe_t14/dat",
+      "watchedDir": "/test_t14/dat",
+      "comments": "/test_t14/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t15/dat",
-      "comments": "/exe_t15/dat",
+      "watchedDir": "/test_t15/dat",
+      "comments": "/test_t15/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t18/dat",
-      "comments": "/exe_t18/dat",
+      "watchedDir": "/test_t18/dat",
+      "comments": "/test_t18/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t18/dat/edr",
-      "comments": "/exe_t18/dat/edr",
+      "watchedDir": "/test_t18/dat/edr",
+      "comments": "/test_t18/dat/edr",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t20/dat",
-      "comments": "/exe_t20/dat",
+      "watchedDir": "/test_t20/dat",
+      "comments": "/test_t20/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t20/dat/edr",
-      "comments": "/exe_t20/dat/edr",
+      "watchedDir": "/test_t20/dat/edr",
+      "comments": "/test_t20/dat/edr",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t21/dat",
-      "comments": "/exe_t21/dat",
+      "watchedDir": "/test_t21/dat",
+      "comments": "/test_t21/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t24/dat",
-      "comments": "/exe_t24/dat",
+      "watchedDir": "/test_t24/dat",
+      "comments": "/test_t24/dat",
       "monitorSubDirectories": "false"
     },
     {
-      "watchedDir": "/exe_t28/dat",
-      "comments": "/exe_t28/dat",
+      "watchedDir": "/test_t28/dat",
+      "comments": "/test_t28/dat",
       "monitorSubDirectories": "false"
     },
     {

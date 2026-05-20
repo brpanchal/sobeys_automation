@@ -1,0 +1,38 @@
+[{
+  "_id": "SBYS_FW_IDENTIFY_CONSUMER|||99",
+  "codeListName": "SBYS_FW_IDENTIFY_CONSUMER",
+  "versionNumber": 99,
+  "createDate": "2025-04-03T02:50:23.213+0000",
+  "userName": "File Gateway Admin User",
+  "listStatus": 1,
+  "codes": [
+    {
+      "description": "TEST01",
+      "receiverCode": "%QMQ.txt",
+      "senderCode": "TEST04",
+      "text1": "",
+      "text2": "",
+      "text3": "",
+      "text4": "",
+      "text5": "",
+      "text6": "",
+      "text7": "",
+      "text8": "",
+      "text9": ""
+    },
+    {
+      "description": "TEST02",
+      "receiverCode": "$/{{stdcwhse}}/TEST/QUE.awrsuper.txt",
+      "senderCode": "TEST",
+      "text1": "",
+      "text2": "",
+      "text3": "",
+      "text4": "",
+      "text5": "",
+      "text6": "",
+      "text7": "",
+      "text8": "",
+      "text9": ""
+    }
+  ]
+}]

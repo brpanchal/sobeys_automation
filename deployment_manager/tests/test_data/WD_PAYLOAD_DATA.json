@@ -1,0 +1,9 @@
+{
+  "watchDirList": {
+    "/test_t21/dat": {
+      "watchedDir": "/test_t21/dat",
+      "comments": "/test_t21/dat",
+      "monitorSubDirectories": "false"
+    }
+  }
+}

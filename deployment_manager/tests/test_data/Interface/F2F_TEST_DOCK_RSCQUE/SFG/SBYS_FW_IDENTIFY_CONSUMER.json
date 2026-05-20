@@ -1,0 +1,20 @@
+[
+  {
+    "codes": [
+      {
+        "description": "TEST02",
+        "receiverCode": "$/{{stdcwhse}}/TEST/QUE.awrsuper.txt",
+        "senderCode": "TEST",
+        "text1": "",
+        "text2": "",
+        "text3": "",
+        "text4": "",
+        "text5": "",
+        "text6": "",
+        "text7": "",
+        "text8": "",
+        "text9": ""
+      }
+    ]
+  }
+]

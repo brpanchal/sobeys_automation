@@ -1,0 +1,37 @@
+TEST_SFG PROCESS
+
+        SNODE=SFG${{env}}
+
+        &INFILE="%FA_FILE_FOUND"
+
+        &FILENAME="%FA_NOT_PATH"
+
+CDCP COPY
+
+    FROM (
+
+        FILE="&INFILE"
+
+        PNODE
+
+)
+
+ckpt = 2M
+
+    TO (
+
+        FILE = "/mailbox/FILENAME"
+
+        SNODE
+
+        DISP=RPL
+
+                )
+
+IF (CDCP EQ 0) THEN
+ACK RUN TASK PNODE (PGM=UNIX)
+SYSOPTS="rm &INFILE"
+EIF
+
+
+PEND

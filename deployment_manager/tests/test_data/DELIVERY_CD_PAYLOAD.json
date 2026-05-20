@@ -1,0 +1,20 @@
+[
+  {
+    "codes": [
+      {
+        "description": "F2F_TEST_SUPER_SAPRMS02",
+        "receiverCode": "$/{{stdcwhse}}/TEST/QUE.awrsuper.txt",
+        "senderCode": "TEST01|TEST02",
+        "text1": "TEST01",
+        "text2": "",
+        "text3": "/test/in/awr",
+        "text4": "",
+        "text5": "",
+        "text6": "",
+        "text7": "",
+        "text8": "",
+        "text9": ""
+      }
+    ]
+  }
+]
